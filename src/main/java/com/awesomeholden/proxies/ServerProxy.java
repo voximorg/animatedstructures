@@ -1,7 +1,9 @@
 package com.awesomeholden.proxies;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map.Entry;
 
 import scala.actors.threadpool.Arrays;
 
@@ -22,6 +24,7 @@ import com.awesomeholden.Tileentities.TileentityAnimationEditorServer;
 import com.awesomeholden.controllers.AnimationControllerClient;
 import com.awesomeholden.controllers.AnimationControllerServer;
 import com.awesomeholden.guis.AnimationEditorGui;
+import com.awesomeholden.packets.RefreshAnimation;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
@@ -115,6 +118,21 @@ public class ServerProxy extends CommonProxy{
 		return null;
 	}
 	
+	public static TileentityAnimationEditorServer getEditor(AnimationControllerServer in){
+		WorldServer w = MinecraftServer.getServer().worldServers[in.dimension];
+		for(int i=0;i<w.loadedTileEntityList.size();i++){
+			if(!(w.loadedTileEntityList.get(i) instanceof TileentityAnimationEditorServer))
+				continue;
+			
+			TileentityAnimationEditorServer c = (TileentityAnimationEditorServer) w.loadedTileEntityList.get(i);
+			if(c.controller == in){
+				return c;
+			}
+		}
+		
+		return null;
+	}
+	
 	public static int getTileentityAnimatedId(TileentityAnimatedServer c){
 		int max = 20;
 		return c.xCoord*max*max+c.yCoord*max+c.zCoord;
@@ -149,9 +167,7 @@ public class ServerProxy extends CommonProxy{
 		for(int i=0;i<AnimationControllers.size();i++){
 			int[] c = AnimationControllers.get(i).coords;
 			if(c[0]<=x && c[1]<=y && c[2]<=z && c[3]>=x && c[4]>=y && c[5]>=z){
-				if(AnimationControllers.get(i) != ignore){
-					return AnimationControllers.get(i);
-				}
+				return AnimationControllers.get(i);
 			}
 		}
 		
@@ -176,7 +192,7 @@ public class ServerProxy extends CommonProxy{
 	public static void addTileentityToController(TileentityAnimatedServer t, AnimationControllerServer c){
 		
 		if(Main.indexOf(c.theControlled,t) > -1) return;
-		
+				
 		int id = ServerProxy.getTileentityAnimatedId(t);
 		for(int i=0;i<c.theControlled.size();i++){
 			if(id<ServerProxy.getTileentityAnimatedId(c.theControlled.get(i))){
@@ -186,6 +202,46 @@ public class ServerProxy extends CommonProxy{
 		}
 		
 		c.theControlled.add(t);
+		
+	}
+	
+	public static void updateControllerFrames(TileentityAnimatedServer t, AnimationControllerServer c){
+		int index = -1;
+		
+		int id = ServerProxy.getTileentityAnimatedId(t);
+		for(int i=0;i<c.theControlled.size();i++){
+			if(id<ServerProxy.getTileentityAnimatedId(c.theControlled.get(i))){
+				index = i;
+				break;
+			}
+		}
+		
+		if(index == -1){
+			c.theControlled.add(t);
+			return;
+		}
+		
+		for(int i=0;i<c.framesInfo.size();i++){
+			for(Entry<Integer, List<Integer>> e : c.framesInfo.get(i).entrySet()){
+				for(int i2=0;i2<e.getValue().size();i2++){
+					if(e.getValue().get(i2) == index){
+						return;
+					}
+				}
+			}
+		}
+		
+		for(int i=0;i<c.framesInfo.size();i++){
+			for(Entry<Integer, List<Integer>> e : c.framesInfo.get(i).entrySet()){
+				for(int i2=0;i2<e.getValue().size();i2++){
+					if(e.getValue().get(i2) >= index){
+						e.getValue().set(i2, e.getValue().get(i2)+1);
+					}
+				}
+			}
+		}
+		
+		Main.network.sendToAllAround(new RefreshAnimation(c.coords), c.genTargetPoint());
 	}
 	
 	//public static TileentityAnimationEditor getEditorByCoords

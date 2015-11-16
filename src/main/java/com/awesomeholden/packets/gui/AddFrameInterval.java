@@ -47,13 +47,6 @@ public class AddFrameInterval implements IMessage{
 			c.frameIntervals.add(message.value);
 			c.framesInfo.add(new HashMap<Integer,List<Integer>>());
 			
-			System.out.println("CURRENT FRAME: "+(c.framesInfo.size()-1));
-			
-			HashMap<Integer,List<Integer>> list = c.framesInfo.get(c.framesInfo.size()-1);
-			for(Entry<Integer,List<Integer>> e : list.entrySet()){
-				System.out.println("TEXTURE: "+e.getKey());
-				System.out.println("SIZE: "+e.getValue().size());
-			}
 			return null;
 		}
 		

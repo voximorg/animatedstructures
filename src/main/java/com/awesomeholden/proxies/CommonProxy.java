@@ -20,6 +20,7 @@ import cpw.mods.fml.common.event.FMLPostInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import cpw.mods.fml.server.FMLServerHandler;
 
 public class CommonProxy {
 		
@@ -34,11 +35,12 @@ public class CommonProxy {
 	@EventHandler
     public void init(FMLInitializationEvent e) {
 		
-		FMLCommonHandler.instance().bus().register(ClientLoop.instance);
-    	MinecraftForge.EVENT_BUS.register(ClientLoop.instance);
-    	
-    	FMLCommonHandler.instance().bus().register(ServerLoop.instance);
-    	MinecraftForge.EVENT_BUS.register(ServerLoop.instance);
+			FMLCommonHandler.instance().bus().register(ClientLoop.instance);
+			MinecraftForge.EVENT_BUS.register(ClientLoop.instance);
+			
+			FMLCommonHandler.instance().bus().register(ServerLoop.instance);
+			
+			MinecraftForge.EVENT_BUS.register(ServerLoop.instance);
 		
     }
 

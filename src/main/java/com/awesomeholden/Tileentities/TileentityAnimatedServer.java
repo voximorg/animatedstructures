@@ -12,11 +12,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
 
+import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.IIcon;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.world.World;
 
 import com.awesomeholden.Main;
 import com.awesomeholden.ServerLoop;
@@ -53,13 +56,8 @@ public class TileentityAnimatedServer extends TileEntity{
 	  //nbt.setInteger("fuse", fuse);
 	}*/
 		
-	public void realConstructor(){ //called in block class when added. Have to do this because minecraft takes some time to set Coords of tileentity.
+	public void realConstructor(World world){ //called in block class when added. Have to do this because minecraft takes some time to set Coords of tileentity.
 		//System.out.println("IS CLIENT: "+FMLCommonHandler.instance().getEffectiveSide().isClient()+" also: "+isAdded);
-		
-		AnimationControllerServer c = ServerProxy.coordsInController(xCoord, yCoord, zCoord);
-		
-		if(c != null)
-			ServerProxy.addTileentityToController(this, c);
 		
 		for(int i=0;i<ServerProxy.AnimationControllers.size();i++)
 			ServerProxy.AnimationControllers.get(i).TileentitiesToBeAdded++;
@@ -82,11 +80,11 @@ public class TileentityAnimatedServer extends TileEntity{
 		}
 	}
 	
-	@Override
+	/*@Override
 	public void onChunkUnload(){
 		/*System.out.println("blockDestroyed!");
 		ServerProxy.deleteTileentityAnimated(xCoord, yCoord, zCoord);
 		Main.network.sendToAll(new DeleteTileentityAnimated(xCoord,yCoord,zCoord));*/
-	}
+	//}
 	
 }

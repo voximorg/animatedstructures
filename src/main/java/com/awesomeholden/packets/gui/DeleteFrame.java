@@ -1,6 +1,4 @@
-package com.awesomeholden.packets;
-
-import net.minecraft.server.MinecraftServer;
+package com.awesomeholden.packets.gui;
 
 import com.awesomeholden.controllers.AnimationControllerServer;
 import com.awesomeholden.proxies.ServerProxy;
@@ -10,18 +8,22 @@ import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
 
-public class RemoveEditorServer implements IMessage{
+public class DeleteFrame implements IMessage{
 	
 	public int[] coords;
+	public int frame;
 	
-	public RemoveEditorServer(){}
+	public DeleteFrame(){}
 	
-	public RemoveEditorServer(int[] coords){
+	public DeleteFrame(int[] coords, int frame){
 		this.coords = coords;
+		this.frame = frame;
 	}
 
 	@Override
 	public void fromBytes(ByteBuf buf) {
+		frame = buf.readInt();
+		
 		coords = new int[6];
 		for(int i=0;i<6;i++)
 			coords[i] = buf.readInt();
@@ -29,20 +31,29 @@ public class RemoveEditorServer implements IMessage{
 
 	@Override
 	public void toBytes(ByteBuf buf) {
+		buf.writeInt(frame);
+		
 		for(int i=0;i<6;i++)
 			buf.writeInt(coords[i]);
 	}
 	
-	public static class Handler implements IMessageHandler<RemoveEditorServer,IMessage>{
+	public static class Handler implements IMessageHandler<DeleteFrame,IMessage>{
 
 		@Override
-		public IMessage onMessage(RemoveEditorServer message, MessageContext ctx) {
+		public IMessage onMessage(DeleteFrame message, MessageContext ctx) {
 			AnimationControllerServer c = ServerProxy.getAnimationController(message.coords);
-			ServerProxy.AnimationControllers.remove(c);
-			MinecraftServer.getServer().worldServers[c.dimension].loadedTileEntityList.remove(ServerProxy.getEditorFromCoords(message.coords, c.dimension));
+			
+			if(c.framesInfo.size()>1){
+				c.frameIntervals.remove(message.frame);
+				
+				c.framesInfo.remove(message.frame);
+				c.frameIndex = 0;
+			}
 			return null;
 		}
 		
 	}
+	
+	
 
 }

@@ -20,7 +20,7 @@ import cpw.mods.fml.client.FMLClientHandler;
 
 public class TESRAnimated extends TileEntitySpecialRenderer{
 	
-	private IModelCustom model;
+	//private IModelCustom model;
     //private ResourceLocation texture;
     
     public TESRAnimated(){

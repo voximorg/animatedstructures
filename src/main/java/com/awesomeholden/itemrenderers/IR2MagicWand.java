@@ -18,7 +18,7 @@ import net.minecraftforge.client.IItemRenderer;
 public class IR2MagicWand implements IItemRenderer{
 	
 	public static IR2MagicWand instance = new IR2MagicWand();
-
+	
 	@Override
 	public boolean handleRenderType(ItemStack item, ItemRenderType type) {
 		// TODO Auto-generated method stub
@@ -35,7 +35,6 @@ public class IR2MagicWand implements IItemRenderer{
 	public ResourceLocation stick = new ResourceLocation("animatedstructures:textures/magic_wand_stick.png");
 	
 	float cache = 10;
-	public float degrees = 0;
 	float ss = 0.1f; //stick size
 	float ssy = 4.5f;
 	
@@ -50,6 +49,8 @@ public class IR2MagicWand implements IItemRenderer{
 		float x = buffer.get(12);
 		float y = buffer.get(13);
 		float z = buffer.get(14);
+		
+		boolean bool = true;
 		
 		/*GL11.glMatrixMode(GL11.GL_PROJECTION);
 		GL11.glLoadIdentity();*/
@@ -66,9 +67,34 @@ public class IR2MagicWand implements IItemRenderer{
 			
 			GL11.glRotatef(160,0,0,1);
 			GL11.glRotatef(45, 1, 0, 0);
+			
+			bool = false;
+			
+			GL11.glBegin(GL11.GL_QUADS);
+			
+			GL11.glColor3f(0.1f, 0.9f, 0.1f);
+			//top
+			GL11.glVertex3f(1, 1, 1);
+			GL11.glVertex3f(-1, 1, 1);
+			GL11.glVertex3f(-1, 1, -1);
+			GL11.glVertex3f(1, 1, -1);
+		
+			GL11.glColor3f(1, 1, 1);
+			//top
+			GL11.glTexCoord2f(1, -1);
+			GL11.glVertex3f(-1, 1, 1);
+			GL11.glTexCoord2f(0, -1);
+			GL11.glVertex3f(-1, 1, -1);
+			GL11.glTexCoord2f(0, 0);
+			GL11.glVertex3f(1, 1, -1);
+			GL11.glTexCoord2f(1, 0);
+			GL11.glVertex3f(1, 1, 1);
+			
+			GL11.glEnd();
+			
 		}else if(type == ItemRenderType.EQUIPPED){
-			GL11.glTranslatef(-1.2f, 6, 1.4f);
-						
+			GL11.glTranslatef(-1f, 5.6f, 1.4f);
+												
 			GL11.glRotatef(45, 1, 0, 0);
 			
 		}
@@ -90,9 +116,6 @@ public class IR2MagicWand implements IItemRenderer{
 		/*GL11.glTranslatef(10, 0, -10);
 		GL11.glRotatef(315, 0, 1, 0);
 		GL11.glTranslatef(-10, 0, 10);*/
-		degrees+=1;
-		if(degrees>360)
-			degrees = 0;
 		
 		GL11.glScalef(2, 2, 2);
 		
@@ -155,10 +178,11 @@ public class IR2MagicWand implements IItemRenderer{
 		//GL11.glRotatef(180, 1, 0, 0);
 		//GL11.glRotatef(315, 0, 0, 1);
 		
-		GL11.glRotatef(degrees, 0, 1, 0);
+		GL11.glRotatef(ClientLoop.degrees, 0, 1, 0);
 				
 		GL11.glBegin(GL11.GL_QUADS);
 		GL11.glColor3f(0.1f, 0.9f, 0.1f);
+		
 		//front
 		GL11.glVertex3f(-1, -1, 1);
 		GL11.glVertex3f(1, -1, 1);
@@ -200,6 +224,25 @@ public class IR2MagicWand implements IItemRenderer{
 		
 		GL11.glBegin(GL11.GL_QUADS);
 		GL11.glColor3f(1,1,1);
+		
+		if(bool){
+			
+			GL11.glVertex3f(1, 1, 1);
+			GL11.glVertex3f(-1, 1, 1);
+			GL11.glVertex3f(-1, 1, -1);
+			GL11.glVertex3f(1, 1, -1);
+			
+			//top
+			GL11.glTexCoord2f(0, -1);
+			GL11.glVertex3f(-1, 1, -1);
+			GL11.glTexCoord2f(1, -1);
+			GL11.glVertex3f(-1, 1, 1);
+			GL11.glTexCoord2f(1, 0);
+			GL11.glVertex3f(1, 1, 1);
+			GL11.glTexCoord2f(0, 0);
+			GL11.glVertex3f(1, 1, -1);
+			
+		}
 		
 		//front
 		GL11.glTexCoord2f(1, 0);

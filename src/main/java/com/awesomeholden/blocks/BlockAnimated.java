@@ -1,6 +1,8 @@
 package com.awesomeholden.blocks;
 
+import java.util.List;
 import java.util.Random;
+import java.util.Map.Entry;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockTorch;
@@ -8,6 +10,7 @@ import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.Explosion;
@@ -19,6 +22,7 @@ import com.awesomeholden.Tabs;
 import com.awesomeholden.Tileentities.TileentityAnimatedClient;
 import com.awesomeholden.Tileentities.TileentityAnimatedServer;
 import com.awesomeholden.Tileentities.TileentityAnimationEditorClient;
+import com.awesomeholden.controllers.AnimationControllerServer;
 import com.awesomeholden.packets.CallTileentityAnimatedRealConstructor;
 import com.awesomeholden.packets.DeleteTileentityAnimated;
 import com.awesomeholden.packets.SendCallTileentityAnimatedConstructor;
@@ -41,6 +45,8 @@ public class BlockAnimated extends Block implements ITileEntityProvider{
 		this.setCreativeTab(Tabs.Tab);
 		
 		setHardness(0.7f);
+		
+		this.setHarvestLevel("pickaxe", 2);
 		}
 	
 	@Override
@@ -81,9 +87,37 @@ public class BlockAnimated extends Block implements ITileEntityProvider{
 				//
 			}
 		}*/
+		
+		if(ServerProxy.coordsInController(x, y, z) == null){
+			world.setBlock(x, y, z, Blocks.air);
+			return;
+		}
+				
 		TileentityAnimatedServer tea = (TileentityAnimatedServer)world.getTileEntity(x, y, z);
-		tea.realConstructor();
+		
+		tea.realConstructor(world);
 		Main.network.sendToAllAround(new CallTileentityAnimatedRealConstructor(x,y,z),new TargetPoint(world.provider.dimensionId, x, y, z, 80));
+	}
+	
+	public int onBlockPlacedBy(World world, int x, int y, int z, int p_149660_5_, float p_149660_6_, float p_149660_7_, float p_149660_8_, int p_149660_9_){
+		
+		/*System.out.println("BLOCK PLACED BY: "+world.isRemote);
+		
+		if(world.isRemote)
+			return 0;
+		
+		System.out.println("BLOCK PlACED BY");
+		
+		AnimationControllerServer c = ServerProxy.coordsInController(x, y, z);
+				
+		if(c == null){
+			//world.setBlock(x, y, z, Blocks.air);
+			return 0;
+		}
+		
+		ServerProxy.updateControllerFrames(t, c);*/
+		
+		return 0;
 	}
 	
 	/*@Override
@@ -115,17 +149,6 @@ public class BlockAnimated extends Block implements ITileEntityProvider{
 	}
 	
 	@Override
-	public void onBlockDestroyedByExplosion(World world, int x, int y, int z, Explosion explosion){
-		if(world.isRemote){
-			ClientProxy.deleteTileentityAnimated(x, y, z);
-		}else{
-			ServerProxy.deleteTileentityAnimated(x, y, z);
-		}
-		//ClientProxy.deleteTileentityAnimated(x, y, z);
-		//Main.network.
-	}
-	
-	@Override
 	public void onBlockDestroyedByPlayer(World world,int x,int y,int z,int other){
 		if(world.isRemote){
 			ClientProxy.deleteTileentityAnimated(x, y, z);
@@ -133,6 +156,14 @@ public class BlockAnimated extends Block implements ITileEntityProvider{
 			ServerProxy.deleteTileentityAnimated(x, y, z);
 		}
 	}
+	
+	@Override
+	public void onBlockExploded(World world, int x, int y, int z, Explosion explosion) {
+		
+		//did not call super
+		
+	}
+	
 	/*@Override
 	public int tickRate(World world){
 		return 10;

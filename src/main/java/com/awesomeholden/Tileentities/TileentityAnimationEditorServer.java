@@ -33,7 +33,7 @@ public class TileentityAnimationEditorServer extends TileEntity{
 		super.writeToNBT(nbt);
 		nbt.setIntArray("coords", controller.coords);
 		nbt.setIntArray("frameIntervals",Main.toIntArray(controller.frameIntervals));
-		
+
 		nbt.setInteger("size", controller.framesInfo.size());
 		
 		for(int i=0;i<controller.framesInfo.size();i++){

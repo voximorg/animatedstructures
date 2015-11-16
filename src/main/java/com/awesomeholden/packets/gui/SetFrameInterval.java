@@ -42,8 +42,9 @@ public class SetFrameInterval implements IMessage{
 	public static class Handler implements IMessageHandler<SetFrameInterval, IMessage>{
 
 		@Override
-		public IMessage onMessage(SetFrameInterval message, MessageContext ctx) {
+		public IMessage onMessage(SetFrameInterval message, MessageContext ctx) {			
 			ServerProxy.getAnimationController(message.coords).frameIntervals.set(message.ph, message.value);
+			
 			return null;
 		}
 		

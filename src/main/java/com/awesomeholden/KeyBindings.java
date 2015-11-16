@@ -13,14 +13,12 @@ public class KeyBindings{
 	//public static KeyBinding ESCAPE;
 	public static KeyBinding RIGHT;
 	public static KeyBinding LEFT;
-	public static KeyBinding BACKSPACE;
 	
 	public static void create(){
 		//ping = new KeyBinding("key.Q", Keyboard.KEY_Q, "key.categories.AnimatedStructures");
 		//ESCAPE = new KeyBinding("key.ESCAPE", Keyboard.KEY_ESCAPE, "key.categories.AnimatedStructures");
 		RIGHT = new KeyBinding("key.RIGHT", Keyboard.KEY_RIGHT, "key.categories.AnimatedStructures");
 		LEFT = new KeyBinding("key.LEFT", Keyboard.KEY_LEFT, "key.categories.AnimatedStructures");
-		BACKSPACE = new KeyBinding("key.BACKSPACE", Keyboard.KEY_DELETE, "key.categories.AnimatedStructures");
 	}
 
 }

@@ -18,7 +18,6 @@ import com.awesomeholden.Main;
 import com.awesomeholden.Tileentities.TileentityAnimatedClient;
 import com.awesomeholden.Tileentities.TileentityAnimatedServer;
 import com.awesomeholden.Tileentities.TileentityAnimationEditorClient;
-import com.awesomeholden.packets.GetTextures;
 import com.awesomeholden.proxies.ClientProxy;
 import com.awesomeholden.proxies.ServerProxy;
 

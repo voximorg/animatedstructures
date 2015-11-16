@@ -11,6 +11,8 @@ import org.lwjgl.input.Keyboard;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockTorch;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiIngameMenu;
+import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.monster.EntityEnderman;
 import net.minecraft.entity.passive.EntityPig;
@@ -24,6 +26,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
+import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.event.entity.EntityEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.world.BlockEvent;
@@ -39,7 +42,6 @@ import com.awesomeholden.data.TextureData;
 import com.awesomeholden.items.MItems;
 import com.awesomeholden.packets.GivePlayerTextures;
 import com.awesomeholden.packets.ShouldDestroyController;
-import com.awesomeholden.packets.TestPacket;
 import com.awesomeholden.proxies.ClientProxy;
 import com.awesomeholden.proxies.ServerProxy;
 
@@ -47,49 +49,31 @@ import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.PlayerEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
+import cpw.mods.fml.common.gameevent.TickEvent.Phase;
 import cpw.mods.fml.common.network.NetworkRegistry.TargetPoint;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 
 
 public class ServerLoop {
-	
+		
 	public static ServerLoop instance = new ServerLoop();
 	
 	public static TextureData textureData;
-	
-	boolean didLoad = false;
-	boolean didLoad2 = false;
-	
-	@SubscribeEvent()
-	public void unload(WorldEvent.Unload event){
-		if(event.world.isRemote) return;
-		WorldServer world = FMLCommonHandler.instance().getMinecraftServerInstance().worldServers[0];
-		//world.perWorldStorage.setData("aniwhat",new TextureData("aniwhat"));
-		//TextureData.theStuff = null;
-		didLoad = false;
 		
-		textureData.markDirty();
-		
-		/*ServerProxy.AnimationControllers.clear();
-		ClientProxy.AnimationControllers.clear();*/
-		
-		//TileentityAnimatedServer.textures.clear();
+	@SubscribeEvent
+	public void unload(WorldEvent.Unload e){
+		if(textureData != null)
+			textureData.markDirty();
 	}
 	
 	@SubscribeEvent
-	public void load(WorldEvent.Load event){
-		if(didLoad) return;
+ 	public void load(WorldEvent.Load event){
 		
-		didLoad = true;
-		
-		ServerProxy.AnimationControllers.clear();
-		ClientProxy.AnimationControllers.clear();
-		
-		List<ResourceLocation> cache0 = new ArrayList(TileentityAnimatedClient.textures);
+		/*List<ResourceLocation> cache0 = new ArrayList(TileentityAnimatedClient.textures);
 		List<ResourceLocation> cache1 = new ArrayList(TileentityAnimatedServer.textures);
 				
 		TileentityAnimatedClient.textures.clear();
-		TileentityAnimatedServer.textures.clear();
+		TileentityAnimatedServer.textures.clear();*/
 		
 		
 		//TextureData.theStuff = null;
@@ -99,9 +83,9 @@ public class ServerLoop {
 		TextureData data = ((TextureData) world.perWorldStorage.loadData(TextureData.class,"aniwhat"));
 		
 		if(data == null){
-		
+					
 			//world.perWorldStorage.setData("aniwhat",new TextureData("aniwhat"));
-			TileentityAnimatedServer.textures.add(new ResourceLocation("animatedstructures:textures/blocks/transparent.png"));
+			TileentityAnimatedServer.textures.add(new ResourceLocation("animatedstructures:textures/transparent.png"));
 			TileentityAnimatedServer.textures.add(new ResourceLocation("minecraft:textures/blocks/beacon.png"));
 			TileentityAnimatedServer.textures.add(new ResourceLocation("minecraft:textures/blocks/bedrock.png"));
 			TileentityAnimatedServer.textures.add(new ResourceLocation("minecraft:textures/blocks/bookshelf.png"));
@@ -110,15 +94,18 @@ public class ServerLoop {
 			world.perWorldStorage.setData("aniwhat",textureData);
 		}else{
 			textureData = data;
+			
 		}
 		
-		if(TileentityAnimatedClient.textures.size()==0) //incase of change of dimention
+		/*if(TileentityAnimatedClient.textures.size()==0) //incase of change of dimention
 			TileentityAnimatedClient.textures.addAll(cache0);
 		
 		if(TileentityAnimatedServer.textures.size()==0)
-			TileentityAnimatedServer.textures.addAll(cache1);
+			TileentityAnimatedServer.textures.addAll(cache1);*/
 		
 		}catch(NullPointerException e){
+			
+			System.out.println("NULL POINTER EXCEPTION :"+FMLCommonHandler.instance().getEffectiveSide().isClient());
 			//client
 		}
 		/*try{
@@ -142,8 +129,8 @@ public class ServerLoop {
 	@SubscribeEvent
 	public void joinEvent(PlayerEvent.PlayerLoggedInEvent e){
 		//if((!didLoad2) && FMLCommonHandler.instance().getEffectiveSide().isServer()){
+		
 			Main.network.sendTo(new GivePlayerTextures(), (EntityPlayerMP)e.player);
-			didLoad2 = true;
 		//}
 		//}
 		/*if(e.entity instanceof EntityPlayerMP){
@@ -169,11 +156,12 @@ public class ServerLoop {
 	public List<EntityItem> removeThis = new ArrayList<EntityItem>();
 	@SubscribeEvent
 	public void onServerTick(TickEvent.ServerTickEvent event){
-		
-		for(int ph=0;ph<ServerProxy.AnimationControllers.size();ph++){
+		if(event.phase == Phase.END)
+			return;
+						
+		for(int ph=0;ph<ServerProxy.AnimationControllers.size();ph++)
 			ServerProxy.AnimationControllers.get(ph).onUpdate();
-			AnimationControllerServer c = ServerProxy.AnimationControllers.get(ph);
-		}
+		
 		
 		removeThis.clear();
 		
@@ -241,6 +229,57 @@ public class ServerLoop {
 		if(e.entity instanceof EntityEnderman){
 			EntityItem i = new EntityItem(w,e.entity.posX,e.entity.posY,e.entity.posZ,new ItemStack(MItems.enderBrain));
 			w.spawnEntityInWorld(i);
+		}
+	}
+	
+	@SubscribeEvent
+	public void entityCreation(EntityEvent.EnteringChunk e){
+		if(e.entity instanceof EntityItem){
+			ItemStack stack = ((EntityItem)e.entity).getEntityItem();
+			Block b = Block.getBlockFromItem(stack.getItem());
+			if(b == Blocks.stained_glass){
+				int meta = stack.getItemDamage();
+								
+				if(meta == 13 || meta == 14 || meta == 11){
+				      ServerLoop.trackedItems.put((EntityItem) e.entity,0D);
+				}
+			}
+		}
+	}
+	
+	@SubscribeEvent
+	public void blockEvent(BlockEvent.PlaceEvent e){
+		if(e.block == CreateBlocks.Animated){			
+			TileentityAnimatedServer t = (TileentityAnimatedServer) e.world.getTileEntity(e.x, e.y, e.z);
+			
+			AnimationControllerServer c = ServerProxy.coordsInController(e.x, e.y, e.z);
+						
+			if(t == null)
+				return;
+			
+			int index = -1;
+			
+			ServerProxy.addTileentityToController(t, c);
+			
+			
+			int id = ServerProxy.getTileentityAnimatedId(t);
+			for(int i=0;i<c.theControlled.size();i++){
+				if(id==ServerProxy.getTileentityAnimatedId(c.theControlled.get(i))){
+					index = i;
+					
+					break;
+				}
+			}
+						
+			for(int i=0;i<c.framesInfo.size();i++){
+				for(Entry<Integer, List<Integer>> e2 : c.framesInfo.get(i).entrySet()){
+					for(int i2=0;i2<e2.getValue().size();i2++){
+						if(e2.getValue().get(i2) >= index){
+							e2.getValue().set(i2, e2.getValue().get(i2)+1);
+						}
+					}
+				}
+			}
 		}
 	}
 	

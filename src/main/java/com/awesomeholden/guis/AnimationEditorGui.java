@@ -2,29 +2,29 @@ package com.awesomeholden.guis;
 
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Random;
 
-import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
-import scala.actors.threadpool.Arrays;
-
 import java.util.Collections;
 
+import com.awesomeholden.ClientLoop;
 import com.awesomeholden.Main;
 import com.awesomeholden.Tileentities.TileentityAnimatedClient;
 import com.awesomeholden.Tileentities.TileentityAnimatedServer;
 import com.awesomeholden.Tileentities.TileentityAnimationEditorClient;
 import com.awesomeholden.controllers.AnimationControllerClient;
 import com.awesomeholden.controllers.AnimationControllerServer;
-import com.awesomeholden.guis.animationeditorguiwidges.Button;
-import com.awesomeholden.guis.animationeditorguiwidges.EditBlockGuiWidget;
+import com.awesomeholden.guis.animationeditorguiwidges.BasicButton;
+import com.awesomeholden.guis.animationeditorguiwidges.Scrollbar;
 import com.awesomeholden.guis.animationeditorguiwidges.TextBox;
 import com.awesomeholden.guis.animationeditorguiwidges.TextBoxInput;
-import com.awesomeholden.guis.animationeditorguiwidges.TexturedButton;
+import com.awesomeholden.guis.tool.Tool;
+import com.awesomeholden.guis.tool.ToolEraser;
+import com.awesomeholden.guis.tool.ToolPencil;
 import com.awesomeholden.items.MItems;
 import com.awesomeholden.packets.gui.AddFrameInterval;
+import com.awesomeholden.packets.gui.DeleteFrame;
 import com.awesomeholden.packets.gui.GetFrameIntervals;
 import com.awesomeholden.packets.gui.GetFrameByLayerAndFrame;
 import com.awesomeholden.packets.gui.SaveControllerToItem;
@@ -49,18 +49,20 @@ import net.minecraft.util.ResourceLocation;
 
 public class AnimationEditorGui {
 	
+	public static int button = 0;
+	
+	public List<Tool> tools = new ArrayList<Tool>();
+	
 	public static int max = 20;
 	
-	public AnimationControllerClient controller;
+	public static AnimationControllerClient controller;
 	
-	public List<Integer> frameIntervals = new ArrayList<Integer>();
-	public boolean waitTillServerSetsFrameIntervals = true;
+	public static List<Integer> frameIntervals;
 		
 	//public List<ArrayList<ArrayList<TileentityAnimated>>> organisedBlocks = new ArrayList<ArrayList<ArrayList<TileentityAnimated >  >  > ();
 	
-	public int[] smallestCoords;
-	public int[] biggestCoords;
-	public int[] fullCanvasSize;
+	public static int[] smallestCoords;
+	public static int[] biggestCoords;
 	public static float[] s = new float[]{ClientProxy.canvasWidth,0.8f}; //size of drawing area for blocks;
 	public static float[] fullSize = new float[]{0.8f,0.8f};
 	public static int blockNumber;
@@ -70,14 +72,15 @@ public class AnimationEditorGui {
 	public float blockSizeY;
 	
 	public static TextureManager textureManager = Minecraft.getMinecraft().getTextureManager();
-	public int[] frames = new int[0];
+	public static int[] frames = new int[0];
+	public int[] ghostFrames = new int[0];
 			
 	//TileEntityRendererDispatcher ugly = new TileEntityRendererDispatcher();
 	
-	public int currentLayer = 0;
-	public int currentFrame = 0;
+	public static int currentLayer = 0;
+	public static int currentFrame;
 	
-	public List<TextBoxInput> timelineBottoms = new ArrayList<TextBoxInput>();
+	public List<TextBoxInput> timelineBottoms; //I meant buttons...
 	public float timelineBottomSizeX;
 	public float timelineBottomSizeY;
 	
@@ -92,18 +95,30 @@ public class AnimationEditorGui {
 	public ResourceLocation currentTex;
 		
 	public AnimationEditorGui(TileentityAnimationEditorClient tea){
+		outofBox.alignment = 2;
+		
+		frameIntervals = new ArrayList<Integer>();
+		timelineBottoms = new ArrayList<TextBoxInput>();
+		
+		currentFrame = 0;
+		currentLayer = 0;
+		
+		frameBox.text = "frame: 0";
+		
+		
+		
+		frames = new int[0];
+		ghostFrames = new int[0];
+		
 		controller = tea.controller;
 		smallestCoords = getSmallestCoords();
 		biggestCoords = getBiggestCoords();
-		fullCanvasSize = new int[]{biggestCoords[0]-smallestCoords[0],biggestCoords[1]-smallestCoords[1],biggestCoords[2]-smallestCoords[2]};
 		s = new float[]{ClientProxy.canvasWidth,0.8f}; //size from center
 		blockNumber = 20;
 		xOffset = (-s[0])+(s[0]*0.1f);
 		yFill = s[1]*0.1f;
 		blockSizeX = ( (s[0]*2) - (s[0]-(-xOffset) ) )/blockNumber;
 		blockSizeY = ((s[1]*2)-yFill)/blockNumber;
-		
-		Main.network.sendToServer(new GetFrameByLayerAndFrame(smallestCoords[1],currentFrame,currentLayer,controller.coords));
 		
 		timelineBottomSizeX = (fullSize[0]-s[0])*0.75f;
 		timelineBottomSizeY = fullSize[1]/16;
@@ -121,25 +136,32 @@ public class AnimationEditorGui {
 		currentTexTextbox = new TextBoxInput(new float[]{-fullSize[0],(-fullSize[1])+(textboxHeight*2)},new float[]{-s[0],(-fullSize[1])+textboxHeight},"minecraft:textures/items/apple.png","");
 		currentTex = new ResourceLocation(currentTexTextbox.text);
 		
+		currentTool = new ToolPencil();
+		 
+		tools.add(currentTool);
+		tools.add(new ToolEraser());
+		
 		Main.network.sendToServer(new GetFrameIntervals(controller.coords)); //this sets this.frameIntervals
+		
+		Main.network.sendToServer(new GetFrameByLayerAndFrame(smallestCoords[1],currentFrame,currentLayer,controller.coords));
 				
+	}
+	
+	public static float xToY(float x){
+		return (s[1]/s[0])*x;
 	}
 	
 	public void addTimelineBottoms(){	
 		
-			for(int ph=1;ph<frameIntervals.size();ph++){
+		int size = frameIntervals.size();
+		
+			for(int ph=0;ph<size;ph++){
 				timelineBottoms.add(new TextBoxInput(new float[]{s[0]+offset,cache},new float[]{fullSize[0]-offset,cache-timelineBottomSizeY},frameIntervals.get(ph).toString(),blacklist));
-				timelineBottoms.get(ph-1).alignment = 1;
+				timelineBottoms.get(ph).alignment = 1;
 				cache-=timelineBottomSizeY;
 				cache-=extraspace;
 			}
-		
-		if(frameIntervals.size()>0){
-			timelineBottoms.add(new TextBoxInput(new float[]{s[0]+offset,cache},new float[]{fullSize[0]-offset,cache-timelineBottomSizeY},frameIntervals.get(0).toString(),blacklist));
-			timelineBottoms.get(timelineBottoms.size()-1).alignment = 1;
-			cache-=timelineBottomSizeY;
-			cache-=extraspace;
-		}
+			
 		
 	}
 	
@@ -173,18 +195,16 @@ public class AnimationEditorGui {
 		return cache;
 	}
 	
-	public TileentityAnimatedClient lookUp(int x,int y,int z){
-		for(int ph=0;ph<controller.theControlled.size();ph++){
-			TileentityAnimatedClient t = controller.theControlled.get(ph);
-			if(x == t.xCoord && y == t.yCoord && z == t.zCoord){
-				return t;
-			}
-		}
-		return null;
-	}
+	public float[] mousePos;
 	int previousSize = 0;
 	float right = -(fullSize[0]-(fullSize[0]-s[0]));
-	public void render(){
+	
+	public static int eventButton = 0;
+		
+	public static boolean newEventButton = false;
+	public void render(){		
+		mousePos = ClientProxy.mousePos;
+				
 		if(controller.theControlled.size() != previousSize){
 			smallestCoords = getSmallestCoords();
 			biggestCoords = getBiggestCoords();
@@ -213,7 +233,7 @@ public class AnimationEditorGui {
 			
 			GL11.glMatrixMode(GL11.GL_PROJECTION);
 			GL11.glPushMatrix();
-			GL11.glLoadIdentity(); //minecraft has it set so that x is just like y. So that blocks can be 1x1 and look like blocks not weird rectangles
+			GL11.glLoadIdentity();
 			GL11.glOrtho(-1, 1, -1, 1, -1, 1);
 			GL11.glMatrixMode(GL11.GL_MODELVIEW);
 			GL11.glPushMatrix();
@@ -222,7 +242,7 @@ public class AnimationEditorGui {
 			GL11.glPushAttrib(GL11.GL_LIGHTING_BIT | GL11.GL_TEXTURE_BIT);
 	    	GL11.glDisable(GL11.GL_LIGHTING);
 	    	GL11.glDisable(GL11.GL_TEXTURE_2D);
-	    	GL11.glEnable(GL11.GL_BLEND); //Transparency
+	    	GL11.glEnable(GL11.GL_BLEND);
         	
 	        	GL11.glColor4f(0,0,0,0.5f);
 				
@@ -236,13 +256,12 @@ public class AnimationEditorGui {
 				GL11.glColor4f(1,1,1,1);
 				
 				editLayers();
+				
 				drawTimeline();
 
 				drawBlocks();
 				
-				if(selectedBlock != null){
-					drawEditBlock();
-				}
+				drawEditBlock();
 				
 				drawTools();
 				
@@ -274,9 +293,14 @@ public class AnimationEditorGui {
 			GL11.glEnable(GL11.GL_LIGHTING);
 	        GL11.glEnable(GL11.GL_TEXTURE_2D);
 	        GL11.glEnable(GL11.GL_BLEND);
+	        
+	        newEventButton = false;
+	        
+	        ClientLoop.leftUp = false;
 	}
 	
-	public int previousEventButton = 0;
+	public static TileentityAnimatedClient hoverAnimated;
+	
 	public void drawBlocks(){
 		
 		float[] coords = new float[2];
@@ -284,6 +308,7 @@ public class AnimationEditorGui {
 		GL11.glEnable(GL11.GL_TEXTURE_2D);
 		
 		int onLayerPh = 0;
+		boolean inAnimated = false;
 		for(int ph=0;ph<controller.theControlled.size();ph++){
 			TileentityAnimatedClient te = controller.theControlled.get(ph);
 			//System.out.println("frames.length: "+frames.length);
@@ -296,9 +321,17 @@ public class AnimationEditorGui {
 			//System.out.println("xCoord: "+Math.abs(te.xCoord)+" subtract: "+Math.abs(smallestCoords[0]));
 			//System.out.println("zCoord: "+Math.abs(te.zCoord)+" subtract: "+Math.abs(smallestCoords[2]));
 			
-			float[] mousePos = ClientProxy.mousePos;
-			
 			//System.out.println("BEBE "+mousePos[0]+','+mousePos[1]);
+			
+			GL11.glColor4f(1,1,1,0.6f);
+			textureManager.bindTexture((ResourceLocation) TileentityAnimatedClient.textures.get(ghostFrames[onLayerPh]));
+			GL11.glBegin(GL11.GL_QUADS);
+			Main.draw(coords[0]+blockSizeX,coords[1]);
+			Main.draw(coords[0],coords[1]);
+			Main.draw(coords[0], coords[1]-blockSizeY);
+			Main.draw(coords[0]+blockSizeX, coords[1]-blockSizeY);
+			GL11.glEnd();
+			
 			
 			GL11.glColor4f(1,1,1,1);
 			textureManager.bindTexture((ResourceLocation) TileentityAnimatedClient.textures.get(frames[onLayerPh]));
@@ -310,24 +343,9 @@ public class AnimationEditorGui {
 			GL11.glEnd();
 			
 			if(mousePos[0]>=coords[0] && mousePos[0]<=coords[0]+blockSizeX && mousePos[1]<=coords[1] && mousePos[1]>=coords[1]-blockSizeY){
-				if(Mouse.getEventButton() == 1 && previousEventButton != 1){ //right click
-															
-					rightClickBlock(te);
-					selectedBlock = te;
-					String path = "none";
-					//ResourceLocation location = TileentityAnimatedServer.textures.get(selectedBlock.frames.get(currentFrame));
-					//path = location.getResourceDomain()+':'+location.getResourcePath();
-					textureBox = new TextBoxInput(new float[]{-0.8f,-0.4f},new float[]{-0.6f,-0.44f},path,"");
-					locationBox = new TextBox(new float[]{-0.8f,-0.4f},new float[]{-0.6f,-0.44f},"location:");
-					/*if(selectedBlock == null){
-						System.out.println("new EditBlockGuiWidget");
-						selectedBlock = new EditBlockGuiWidget(this,te);
-					}*//*else{
-						System.out.println("removed EditBlockGuiWidget");
-						selectedBlock = null;
-					}*/
-				}
-				previousEventButton = Mouse.getEventButton();
+				
+				hoverAnimated = te;
+				inAnimated = true;
 				
 				GL11.glDisable(GL11.GL_TEXTURE_2D);
 				GL11.glBegin(GL11.GL_LINE_LOOP);
@@ -343,6 +361,9 @@ public class AnimationEditorGui {
 			//textureManager.bindTexture(texture);
 			//System.out.println(texture.getResourcePath());
 		}
+		
+		if(!inAnimated)
+			hoverAnimated = null;
 		
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
 	}
@@ -380,32 +401,17 @@ public class AnimationEditorGui {
 	
 	
 	
-	private static float mouseSize = 0.04f;
-	private static float[] mouseColor = new float[]{1,0,0};
-	private int colorIndex = 1;
 	public void drawCursor(){		
-		GL11.glDisable(GL11.GL_TEXTURE_2D);
-		float[] mousePos = ClientProxy.mousePos;
-		GL11.glBegin(GL11.GL_QUADS);
-		GL11.glColor4f(mouseColor[0],mouseColor[1],mouseColor[1],1);
-		GL11.glVertex2f(mousePos[0]+mouseSize,mousePos[1]);
-		GL11.glVertex2f(mousePos[0],mousePos[1]);
-		GL11.glVertex2f(mousePos[0],mousePos[1]-mouseSize);
-		GL11.glVertex2f(mousePos[0],mousePos[1]-mouseSize);
-		GL11.glEnd();
+		GL11.glEnable(GL11.GL_TEXTURE_2D);
 		
-		mouseColor[colorIndex-1]-=0.004;
-		mouseColor[colorIndex]+=0.004;
-		if(mouseColor[colorIndex]>=1){
-			if(colorIndex==2){
-				mouseColor[0] = 1;
-				mouseColor[1] = 0;
-				mouseColor[2] = 0;
-				colorIndex = 1;
-			}else{
-				colorIndex++;
-			}
+		if(currentTool != null){
+			GL11.glTranslatef(mousePos[0],mousePos[1],0);
+			currentTool.drawAsCursor();
+			GL11.glTranslatef(-mousePos[0],-mousePos[1],0);
+			
+			return;
 		}
+		
 	}
 	
 		
@@ -417,12 +423,14 @@ public class AnimationEditorGui {
 
 	public float offset = fullSize[0]-s[0]-timelineBottomSizeX;
 	public TextBoxInput frameBox = new TextBoxInput(new float[]{0,0},new float[]{-2,2},"frame: "+currentFrame,blacklist);
+	public BasicButton buttonNewFrame = new BasicButton(new float[]{0,0},new float[]{0,0},new ResourceLocation("animatedstructures:textures/buttons/add_frame.png"));
+	public BasicButton buttonDeleteFrame = new BasicButton(new float[]{0,0},new float[]{0,0}, new ResourceLocation("animatedstructures:textures/buttons/delete_frame.png"));
+	public BasicButton buttonScrollDown = new BasicButton(new float[]{0,0},new float[]{0,0},new ResourceLocation("animatedstructures:textures/buttons/scroll_down.png"));
+	public BasicButton buttonScrollUp = new BasicButton(new float[]{0,0},new float[]{0,0},new ResourceLocation("animatedstructures:textures/buttons/scroll_up.png"));
+	
+	public Scrollbar barTimeline = new Scrollbar(new float[]{0,0},new float[]{0,0},new float[]{0.07058823529f,0.69411764705f,0.90196078431f,1},new float[]{0.11372549019f,0.62745098039f,0.8f,1},0);
+	public int prevBarPos = 0;
 	float cache = fullSize[0]-0.08f;
-	float[] mousePos;
-	float mouseInScrollBarY=0;
-	int previousEvent = -1;
-	float previousMouseY = 0;
-	boolean usedToBeDown = false;
 	public void drawTimeline(){
 		
 		if(frameBox.text.length() < 7){
@@ -435,6 +443,20 @@ public class AnimationEditorGui {
 				int integer = Integer.parseInt(string);
 				if(integer < frameIntervals.size()){
 					currentFrame = integer;
+					
+					for(int i=0;i<timelineBottoms.size();i++)
+						if(timelineBottoms.get(i).active)
+							timelineBottoms.get(i).active = false;
+					
+					timelineBottoms.get(integer).active = true;
+					
+					int i = integer-5;
+					
+					if(i>-1){
+						viewPos = i;
+						barTimeline.barPos = i;
+					}
+					
 					Main.network.sendToServer(new GetFrameByLayerAndFrame(smallestCoords[1],currentFrame,currentLayer,controller.coords));
 				}
 			}
@@ -442,30 +464,124 @@ public class AnimationEditorGui {
 		}
 		frameBox.render();
 		
+		GL11.glEnable(GL11.GL_TEXTURE_2D);
+		
+		buttonNewFrame.updateCoords(new float[]{frameBox.coordsTop[0], -fullSize[1]+0.16f+0.06f},new float[]{frameBox.coordsBottom[0],-fullSize[1]});
+		
+		buttonNewFrame.update();
+		
+		if(buttonNewFrame.pressed){
+			int i = frameIntervals.size()-5;
+			if(i>(-1)){
+				viewPos = i;
+				barTimeline.barPos = i;
+			}
+						
+			Main.network.sendToServer(new AddFrameInterval(controller.coords,10));
+			
+			frameIntervals.add(10);
+			/*for(int ph=0;ph<controller.theControlled.size();ph++){
+				TileentityAnimatedClient te = controller.theControlled.get(ph);
+				//te.doFrames.add(false);
+			}*/
+						
+			timelineBottoms.add(new TextBoxInput(new float[]{s[0]+offset,cache},new float[]{fullSize[0]-offset,cache-timelineBottomSizeY},Integer.toString(10),blacklist));
+			
+			timelineBottoms.get(timelineBottoms.size()-1).alignment = 1;
+			cache-=timelineBottomSizeY;
+			cache-=extraspace;
+			
+			buttonNewFrame.pressed = false;
+		}
+		
+		float y = xToY(0.06f);
+		
+		buttonDeleteFrame.updateCoords(new float[]{buttonNewFrame.coordsTop[0]-0.06f,buttonNewFrame.coordsBottom[1]+y},new float[]{buttonNewFrame.coordsTop[0],buttonNewFrame.coordsBottom[1]});
+		
+		buttonDeleteFrame.update();
+		
+		if(buttonDeleteFrame.pressed){
+			buttonDeleteFrame.pressed = false;
+			
+			if(frameIntervals.size()>1){
+			for(int i=0;i<timelineBottoms.size();i++){
+				TextBoxInput t = timelineBottoms.get(i);
+				
+				if(t.active){
+					Main.network.sendToServer(new DeleteFrame(controller.coords,i));
+										
+					frameIntervals.remove(i);
+					timelineBottoms.remove(i);
+					
+					currentFrame = 0;
+					
+					cache = fullSize[1]-0.08f;
+					
+					timelineBottoms.clear();
+					
+					addTimelineBottoms();
+					
+					Main.network.sendToServer(new GetFrameByLayerAndFrame(smallestCoords[1],currentFrame,currentLayer,controller.coords));
+					break;
+				}
+			}
+			}
+			
+		}
+		
+		
+		
+		buttonScrollUp.updateCoords(new float[]{fullSize[0]-0.04f, frameBox.coordsBottom[1]},new float[]{fullSize[0],frameBox.coordsBottom[1]-xToY(0.04f)});
+		
+		buttonScrollDown.updateCoords(new float[]{fullSize[0]-0.04f,buttonNewFrame.coordsTop[1]+xToY(0.04f)}, new float[]{fullSize[0],buttonNewFrame.coordsTop[1]});
+		
+		buttonScrollUp.update();
+		buttonScrollDown.update();
+		
+		if(buttonScrollUp.pressed){
+			if(viewPos>0){
+				viewPos--;
+				barTimeline.barPos--;
+			}
+			
+			buttonScrollUp.pressed = false;
+		}else if(buttonScrollDown.pressed){
+			if(viewPos<timelineBottoms.size()){
+				viewPos++;
+				barTimeline.barPos++;
+			}
+			buttonScrollDown.pressed = false;
+		}
+		
+		GL11.glDisable(GL11.GL_TEXTURE_2D);
+		
+		barTimeline.updateCoords(new float[]{buttonScrollUp.coordsTop[0], buttonScrollUp.coordsBottom[1]},new float[]{buttonScrollDown.coordsBottom[0],buttonScrollDown.coordsTop[1]}, frameIntervals.size());
+		
+		barTimeline.update();
+		
+		if(barTimeline.barPos != prevBarPos){
+			viewPos = barTimeline.barPos;
+		}
+			
+			
+		prevBarPos = barTimeline.barPos;
+		
+		
 		float posY = frameBox.coordsBottom[1]-0.04f;
 		float[] hold;
 		float[] hold2;
-		cache = fullSize[0]-0.08f;
 		for(int ph=0;ph<timelineBottoms.size();ph++){
+						
 			if(ph<viewPos) continue;
 			TextBoxInput tb = timelineBottoms.get(ph);
-			if(tb.entered){
-				try{
-					int cint = Integer.parseInt(tb.text);
-					int i = ph+1;
-					if(i==frameIntervals.size())
-						i = 0;
-					frameIntervals.set(ph, cint);
-					Main.network.sendToServer(new SetFrameInterval(controller.coords, i,cint));
-				}catch(NumberFormatException e){}
-				tb.entered = false;
-			}
+			
+			
 			hold = new float[]{tb.coordsTop[0],tb.coordsTop[1]};
 			hold2 = new float[]{tb.coordsBottom[0],tb.coordsBottom[1]};
 			//System.out.println("Coords1: "+tb.coordsTop+" , "+tb.coor)
 			tb.coordsTop[1] += viewPos*(timelineBottomSizeY+extraspace);
 			tb.coordsBottom[1] = tb.coordsTop[1]-timelineBottomSizeY;
-			if(tb.coordsBottom[1]<-fullSize[1]+0.16){
+			if(tb.coordsBottom[1]<buttonNewFrame.coordsTop[1]){
 				tb.coordsTop = hold;
 				tb.coordsBottom = hold2;
 				break;
@@ -474,59 +590,37 @@ public class AnimationEditorGui {
 			tb.render();
 			tb.coordsTop = hold;
 			tb.coordsBottom = hold2;
+			
+			
+			if(tb.entered){
+								
+				try{
+					int cint = Integer.parseInt(tb.text);
+					
+					frameIntervals.set(ph, cint);
+					
+					Main.network.sendToServer(new SetFrameInterval(controller.coords, ph,cint));
+										
+				}catch(NumberFormatException e){ System.out.println("BAD exception"); }
+				
+				currentFrame = ph;
+				
+				frameBox.text = "frame: "+ph;
+				
+				Main.network.sendToServer(new GetFrameByLayerAndFrame(smallestCoords[1],currentFrame,currentLayer,controller.coords));
+				tb.entered = false;
+				
+			}
 		}
 		
 		
 		
-		GL11.glBegin(GL11.GL_QUADS);
+		/*GL11.glBegin(GL11.GL_QUADS);
 		GL11.glVertex2d(fullSize[0], -fullSize[1]+0.16);
 		GL11.glVertex2d(s[0], -fullSize[1]+0.16);
 		GL11.glVertex2d(s[0], -fullSize[1]);
 		GL11.glVertex2d(fullSize[0], -fullSize[1]);
-		
-		mousePos = ClientProxy.mousePos;
-		if(Mouse.getEventButton() == 1 && previousEvent != 1){
-			
-			if(mousePos[0]>=s[0] && mousePos[0]<=fullSize[0] && mousePos[1]<=-fullSize[1]+0.16 && mousePos[1]>=-fullSize[1]){
-				Main.network.sendToServer(new AddFrameInterval(controller.coords,20));
-			frameIntervals.add(20);
-			/*for(int ph=0;ph<controller.theControlled.size();ph++){
-				TileentityAnimatedClient te = controller.theControlled.get(ph);
-				//te.doFrames.add(false);
-			}*/
-			timelineBottoms.add(new TextBoxInput(new float[]{s[0]+offset,timelineBottoms.get(timelineBottoms.size()-1).coordsBottom[1]-extraspace},new float[]{fullSize[0]-offset,timelineBottoms.get(timelineBottoms.size()-1).coordsBottom[1]-extraspace-timelineBottomSizeY},"20",blacklist));
-			timelineBottoms.get(timelineBottoms.size()-1).alignment = 1;
-			
-			
-			TextBoxInput tmp = timelineBottoms.get(timelineBottoms.size()-1);
-			//System.out.println("ADDED: ["+tmp.coordsTop[0]+','+tmp.coordsTop[1]+"] , ["+tmp.coordsBottom[0]+','+tmp.coordsBottom[1]+']');
-			}
-		}
-		previousEvent = Mouse.getEventButton();
-		
-		if(Mouse.isButtonDown(1) && !usedToBeDown){
-			if(mousePos[0]>=fullSize[0]-0.04 && mousePos[0]<=fullSize[0] && mousePos[1]<=-fullSize[1]+0.16+0.06 && mousePos[1]>=-fullSize[1]+0.16){
-				if(viewPos>0) viewPos--;
-			}
-			if(mousePos[0]>=fullSize[0]-0.04 && mousePos[0]<=fullSize[0] && mousePos[1]<=fullSize[1]-0.04 && mousePos[1]>=fullSize[1]-0.04-0.06){
-				if(viewPos<timelineBottoms.size()) viewPos++;
-			}
-			usedToBeDown = true;
-		}
-		if(!Mouse.getEventButtonState()){
-			usedToBeDown = false;
-		}
-		
-		GL11.glColor3d(0.2,1,0.2);
-		GL11.glVertex2d(fullSize[0], -fullSize[1]+0.16+0.06);
-		GL11.glVertex2d(fullSize[0]-0.04, -fullSize[1]+0.16+0.06);
-		GL11.glVertex2d(fullSize[0]-0.04, -fullSize[1]+0.16);
-		GL11.glVertex2d(fullSize[0], -fullSize[1]+0.16);
-		
-		GL11.glVertex2d(fullSize[0], fullSize[1]-0.04);
-		GL11.glVertex2d(fullSize[0]-0.04, fullSize[1]-0.04);
-		GL11.glVertex2d(fullSize[0]-0.04, fullSize[1]-0.04-0.06);
-		GL11.glVertex2d(fullSize[0], fullSize[1]-0.04-0.06);
+		GL11.glEnd();*/
 		
 		/*double tmppos = (fullSize[1]-0.16)/timelineBottoms.size();
 		double tmppos2 = viewPos*tmppos;
@@ -546,103 +640,16 @@ public class AnimationEditorGui {
 				}
 			}
 		}*/
-		previousMouseY = mousePos[1];
 		
-		GL11.glEnd();
 	}
-	
-	
-	public TileentityAnimatedClient selectedBlock = null;
-		
-	public TextBoxInput textureBox;
-	public TextBox locationBox;
-	
+				
 	public void drawEditBlock(){
-		GL11.glDisable(GL11.GL_TEXTURE_2D);
-		GL11.glBegin(GL11.GL_QUADS);
-		GL11.glColor4f(0, 0, 0.5f, 0.5f);
-		GL11.glVertex2f(-s[0],0);
-		GL11.glVertex2f(-fullSize[0],0);
-		GL11.glVertex2f(-fullSize[0],-fullSize[1]);
-		GL11.glVertex2f(-s[0],-fullSize[1]);
-		
-		float subLeft = -fullSize[0]+0.005f;
-		float subRight = subLeft+(s[0]/5);
-		float subBottom = -((s[1]/5)+0.005f);
-		GL11.glColor3f(0,0,0);
-		GL11.glVertex2f(subRight,-0.005f);
-		GL11.glVertex2f(subLeft,-0.005f);
-		GL11.glVertex2f(subLeft, subBottom);
-		GL11.glVertex2f(subRight,subBottom);
-	
-		GL11.glEnd();
-		
-		locationBox.updateCoords(new float[]{-s[0],subBottom-0.01f},new float[]{right-0.005f,subBottom-0.05f});
-		locationBox.render();
-		/*if(textBox.entered){
-			
-		}*/
-		if(textureBox.entered){
-			Main.network.sendToServer(new SetTexture(textureBox.text, controller.theControlled.indexOf(selectedBlock), controller.coords, currentFrame));
-			textureBox.entered = false;
-		}
-		textureBox.updateCoords(new float[]{subLeft, locationBox.coordsBottom[1]-0.02f},new float[]{locationBox.coordsBottom[0],locationBox.coordsBottom[1]-0.06f});
-		textureBox.render();
-			
-		GL11.glColor3f(1,1,1);
-						
-		GL11.glEnable(GL11.GL_TEXTURE_2D);
-		textureManager.bindTexture(selectedBlock.texture);
-		GL11.glBegin(GL11.GL_QUADS);
-			GL11.glColor3f(1, 1, 1);
-			Main.draw(subRight-0.01f,-0.015f);
-			Main.draw(subLeft+0.01f,-0.015f);
-			Main.draw(subLeft+0.01f, subBottom+0.01f);
-			Main.draw(subRight-0.01f,subBottom+0.01f);
-		GL11.glEnd();
-			
-	}
-	
-	//public Button buttonGetCopy = new Button(new float[]{-fullSize[0],fullSize[1]}, new float[]{-(fullSize[0])+0.15f,fullSize[1]-0.04f}, "get copy");
-	
-	boolean wasSelected = false;
-	
-	public void drawTools(){
 		
 		selectedBlockSize = new float[]{(fullSize[0]-s[0])/4,((fullSize[0]-s[0])/4)*(s[1]/s[0])};
 		selectedBlockPos = new float[]{(-fullSize[0])+(((fullSize[0]-s[0])-selectedBlockSize[0])/2),currentTexTextbox.coordsTop[1]+selectedBlockSize[1]};
-		GL11.glDisable(GL11.GL_TEXTURE_2D);
-		GL11.glColor3f(0, 1, 1);
-		GL11.glBegin(GL11.GL_QUADS);
-		GL11.glVertex2f(-s[0], 0);
-		GL11.glVertex2f(-fullSize[0], 0);
-		GL11.glVertex2f(-fullSize[0], -s[1]);
-		GL11.glVertex2f(-s[0], -s[1]);
-		GL11.glEnd();
-		
-		/*System.out.println("SELECTEDBLOCKPOS: "+Arrays.toString(selectedBlockPos));
-		System.out.println("SELECTEDBLOCKSIZE: "+Arrays.toString(selectedBlockSize));
-		System.out.println("DIVIDED: "+(s[1]/s[0]));
-		System.out.println("ALSO DIVIDED: "+((fullSize[0]-s[0])/4));
-		System.out.println("ALSO AGINA: "+((fullSize[0]-s[0])/4)*(s[1]/s[0]));*/
-		/*System.out.println("FIRST: "+selectedBlockPos[0]+", "+selectedBlockPos[1]);
-		System.out.println("SECOND: "+(selectedBlockPos[0]+selectedBlockSize[0])+", "+selectedBlockPos[1]);
-		System.out.println("THIRD: "+(selectedBlockPos[0]+selectedBlockSize[0])+", "+(selectedBlockPos[1]-selectedBlockSize[1]));
-		System.out.println("THIRD: "+selectedBlockPos[0]+", "+(selectedBlockPos[1]-selectedBlockSize[1]));*/
 		
 		currentTexTextbox.updateCoords(new float[]{-fullSize[0],(-fullSize[1])+(textboxHeight*2)},new float[]{-s[0],(-fullSize[1])+textboxHeight});
 		currentTexTextbox.render();
-		
-		/*if(currentTexTextbox.active){
-			if(!wasSelected){
-				Minecraft.getMinecraft().displayGuiScreen(new GuiChat("/"));
-				wasSelected = true;
-				currentTexTextbox.active = true;
-			}
-				
-		}else{
-			wasSelected = false;
-		}*/
 		
 		if(currentTexTextbox.entered){
 			//currentTex = new ResourceLocation(currentTexTextbox.text);
@@ -665,10 +672,82 @@ public class AnimationEditorGui {
 		Main.draw(selectedBlockPos[0], selectedBlockPos[1]-selectedBlockSize[1]);
 		Main.draw(selectedBlockPos[0]+selectedBlockSize[0], selectedBlockPos[1]-selectedBlockSize[1]);
 		GL11.glEnd();
+		
+		GL11.glDisable(GL11.GL_TEXTURE_2D);
+			
 	}
 	
-	public void rightClickBlock(TileentityAnimatedClient te) {
-			Main.network.sendToServer(new SetTexture(currentTexTextbox.text, controller.theControlled.indexOf(te), controller.coords, currentFrame));
+	//public Button buttonGetCopy = new Button(new float[]{-fullSize[0],fullSize[1]}, new float[]{-(fullSize[0])+0.15f,fullSize[1]-0.04f}, "get copy");
+	
+	boolean wasSelected = false;
+	
+	public Tool currentTool;
+	
+	public void drawTools(){
+		
+		Tool.height = AnimationEditorGui.xToY(Tool.width);
+		Tool.cursorHeight = AnimationEditorGui.xToY(Tool.cursorWidth);
+		
+		if(currentTool != null && newEventButton)
+			currentTool.onEvent(eventButton);
+		
+		float dif = Math.abs(fullSize[0]-s[0]);
+		float posX = (dif-Tool.width)/2;
+		
+		float x = (-fullSize[0])+posX;
+		float y = 0.6f;
+		
+		GL11.glDisable(GL11.GL_TEXTURE_2D);
+		
+		float height = tools.size()*Tool.height;
+		
+		GL11.glColor4f(0, 0.5f, 0.5f, 0.5f);
+		
+		GL11.glBegin(GL11.GL_QUADS);
+		GL11.glVertex2d(x+Tool.width, y);
+		GL11.glVertex2f(x, y);
+		GL11.glVertex2f(x, y-height);
+		GL11.glVertex2f(x+Tool.width, y-height);
+		GL11.glEnd();
+		
+		GL11.glEnable(GL11.GL_TEXTURE_2D);
+		GL11.glTranslatef(x, 0.6f, 0);
+		GL11.glColor4f(1, 1, 1, 1);
+		for(int i=0;i<tools.size();i++){
+			
+			Tool tool = tools.get(i);
+						
+			if(x<=mousePos[0] && x+Tool.width>=mousePos[0] && y>=mousePos[1] && y-Tool.height<=mousePos[1]){
+				
+				if(newEventButton && Mouse.getEventButtonState()){
+					if(eventButton == button){
+						currentTool = tool;
+					}
+				}
+				
+				GL11.glColor4f(1,1,1,0.6f);
+			}else{
+				GL11.glColor4f(1, 1, 1, 1);
+			}
+			
+			tool.draw();
+			GL11.glDisable(GL11.GL_TEXTURE_2D);
+			GL11.glColor4f(1,1,1,1);
+			GL11.glBegin(GL11.GL_LINE_LOOP);
+			GL11.glVertex2f(Tool.width, 0);
+			GL11.glVertex2f(0, 0);
+			GL11.glVertex2f(0, -Tool.height);
+			GL11.glVertex2f(Tool.width, -Tool.height);
+			GL11.glEnd();
+			GL11.glColor4f(1, 1, 1, 1);
+						
+			GL11.glEnable(GL11.GL_TEXTURE_2D);
+			
+			GL11.glTranslatef(0,-Tool.height,0);
+			y-=Tool.height;
+		}
+		GL11.glTranslatef(Math.abs(x), -(0.6f-height), 0);
+		GL11.glDisable(GL11.GL_TEXTURE_2D);
 	}
 		
 }

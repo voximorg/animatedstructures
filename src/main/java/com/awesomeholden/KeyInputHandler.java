@@ -26,11 +26,6 @@ public class KeyInputHandler {
         }else{
         	ClientProxy.leftPressed = false;
         }
-        if(KeyBindings.BACKSPACE.isPressed()){
-        	ClientProxy.backspacePressed = true;
-        }else{
-        	ClientProxy.backspacePressed = false;
-        }        
 	}
 
 }

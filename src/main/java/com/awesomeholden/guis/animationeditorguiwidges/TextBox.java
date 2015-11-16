@@ -4,11 +4,12 @@ import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import com.awesomeholden.Main;
+import com.awesomeholden.guis.AnimationEditorGui;
 import com.awesomeholden.proxies.ClientProxy;
 
 public class TextBox {
 	
-	public int tick = 0;
+	public static int tick = 0;
 	
 	public static float[] outlineColor = new float[]{1,0,0,1};
 	public static float[] color = new float[]{1,1,1,0.5f};
@@ -23,7 +24,7 @@ public class TextBox {
 	public double[] size;
 	public String text;
 	
-	private String displayedText = "didn't work";
+	public String displayedText = "didn't work";
 	
 	public byte alignment = 0;
 	
@@ -41,7 +42,7 @@ public class TextBox {
 		if((text.length()-index)*textSize>size[0]){
 			displayedText = text.substring(index, (int)(size[0]/textSize)+index);		
 		}else{
-			displayedText = text;
+			displayedText = text.substring(index);
 		}
 	}
 	
@@ -49,10 +50,17 @@ public class TextBox {
 		if(leftorright){
 			//System.out.println("COORDS TOP: "+coordsTop[0]+','+coordsTop[1]+"   COORDS BOTTOM: "+coordsBottom[0]+','+coordsBottom[1]);
 			
-		if((text.length()-index)*textSize>size[0]){
+		if(((text.length()-index)*textSize)>size[0]){
+			System.out.println("THIS SHOULDN'T BE HAPPENING");
 			index++;
 			//System.out.println("Size: "+size[0]+','+size[1]+" index: "+index+" textSize: "+textSize);
 			displayedText = text.substring(index, (int)(size[0]/textSize)+index);
+			
+			if(((int)(size[0]/textSize)+index)==text.length())
+				displayedText = text.substring(index);
+		}else{
+			displayedText = text.substring(index);
+			
 		}
 		}else{
 			if(index > 0){
@@ -61,12 +69,13 @@ public class TextBox {
 			}
 		}
 		
+		
 	}
 	
 	public double blitat;
 	public void render(){
 		float[] mousePos = ClientProxy.mousePos;
-		if(Mouse.getEventButton() == 1){
+		if(AnimationEditorGui.newEventButton && AnimationEditorGui.eventButton == AnimationEditorGui.button && Mouse.getEventButtonState()){
 			if(mousePos[0]>=coordsTop[0] && mousePos[1]<=coordsTop[1] && mousePos[0]<=coordsBottom[0] && mousePos[1]>=coordsBottom[1]){
 				active = true;
 			}else{
@@ -75,7 +84,7 @@ public class TextBox {
 		}
 		if(active){
 			//System.out.println("active");
-			if(tick >= 5){
+			if(tick >= 2){
 				tick = 0;
 				if(ClientProxy.rightPressed){
 					moveSpot(true);
@@ -108,6 +117,8 @@ public class TextBox {
 			blitat+=size[0]-(displayedText.length()*textSize);
 		}
 		Main.drawString(displayedText, new double[]{blitat,coordsTop[1]}, new double[]{displayedText.length()*textSize,size[1]}, spaceSize, "");
+		
+		//System.out.println("DISPlayed TEXT: "+displayedText);
 	}
 	
 	public void updateCoords(float[] v1,float[] v2){

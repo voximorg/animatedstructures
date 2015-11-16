@@ -25,9 +25,9 @@ import com.awesomeholden.controllers.AnimationControllerServer;
 import com.awesomeholden.guis.AnimationEditorGui;
 import com.awesomeholden.guis.animationeditorguiwidges.TextBox;
 import com.awesomeholden.itemrenderers.IR2MagicWand;
+import com.awesomeholden.itemrenderers.IReditor;
 import com.awesomeholden.itemrenderers.ItemRendererAnimation;
 import com.awesomeholden.items.MItems;
-import com.awesomeholden.packets.GetTextures;
 
 import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.event.FMLInitializationEvent;
@@ -45,17 +45,14 @@ public class ClientProxy extends CommonProxy{
 	public static List<TextBox> textBoxs = new ArrayList<TextBox>();
 	
 	public static int[] outlineCache = new int[]{0,0,0,0,0,0}; //Holds the outline player is filling
-	public static boolean[] outlineCacheMeta = new boolean[2];
+	public static boolean[] outlineCacheMeta = new boolean[]{true,true};
 	
 	public static float[] mousePos = new float[2];
 	public static float canvasWidth;
 	
 	public static boolean rightPressed = false;
 	public static boolean leftPressed = false;
-	
-	public static boolean backspacePressed = false;
-	public static boolean backspacePress = false;
-	
+		
 	public static AnimationControllerClient getAnimationController(int[] coords){
 		//System.out.println("HERE IS THE ANImATIONCONTROLLERS>SIZE: "+AnimationControllers.size());
 		for(int ph=0;ph<AnimationControllers.size();ph++){
@@ -185,6 +182,7 @@ public class ClientProxy extends CommonProxy{
         super.init(e);
         MinecraftForgeClient.registerItemRenderer(Item.getItemFromBlock(CreateBlocks.Animated), ItemRendererAnimation.instance);
         MinecraftForgeClient.registerItemRenderer(MItems.magicWand, IR2MagicWand.instance);
+        MinecraftForgeClient.registerItemRenderer(Item.getItemFromBlock(CreateBlocks.AnimationEditor), new IReditor());
         
         /*FMLCommonHandler.instance().bus().register(new ServerLoop());
         MinecraftForge.EVENT_BUS.register(new ServerLoop());*/

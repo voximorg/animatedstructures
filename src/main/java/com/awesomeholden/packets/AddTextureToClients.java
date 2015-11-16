@@ -38,7 +38,6 @@ public class AddTextureToClients implements IMessage{
 		public IMessage onMessage(AddTextureToClients message,MessageContext ctx) {
 			if(TileentityAnimatedClient.getTextureByString(message.location) == -1){
 				TileentityAnimatedClient.textures.add(new ResourceLocation(message.location));
-				System.out.println("TEXTURE ADDED ON CLIENT");
 			}
 			return null;
 		}

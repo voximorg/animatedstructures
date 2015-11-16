@@ -27,7 +27,7 @@ public class MItems {
 		led = new Item().setUnlocalizedName("LED").setCreativeTab(Tabs.Tab).setTextureName("animatedstructures:LED");
 		enderBrain = new Item().setUnlocalizedName("Ender Brain").setCreativeTab(Tabs.Tab).setTextureName("animatedstructures:ender_brain");
 		
-		GameRegistry.registerItem(magicWand, "Magic Wand");
+		GameRegistry.registerItem(magicWand, "Magic Wand"); 
 		GameRegistry.registerItem(redShard, "Red Glass Shard");
 		GameRegistry.registerItem(greenShard, "Green Glass Shard");
 		GameRegistry.registerItem(blueShard, "Blue Glass Shard");

@@ -15,6 +15,8 @@ import io.netty.buffer.ByteBuf;
 import cpw.mods.fml.common.network.simpleimpl.IMessage;
 import cpw.mods.fml.common.network.simpleimpl.IMessageHandler;
 import cpw.mods.fml.common.network.simpleimpl.MessageContext;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 
 public class RemoveEditorClient implements IMessage{
 	
@@ -43,22 +45,19 @@ public class RemoveEditorClient implements IMessage{
 	
 	public static class Handler implements IMessageHandler<RemoveEditorClient,IMessage>{
 
+		@SideOnly(Side.CLIENT)
 		@Override
 		public IMessage onMessage(RemoveEditorClient message, MessageContext ctx) {
+			
 			World w = Minecraft.getMinecraft().theWorld;
 			
 			TileentityAnimationEditorClient c = (TileentityAnimationEditorClient)w.getTileEntity(message.x, message.y, message.z);
 			int[] cc = c.controller.coords;
-			ClientProxy.ignore = c.controller;
-			if(ClientProxy.coordsInController(cc[0],cc[1],cc[2]) != null 
-	    			|| ClientProxy.coordsInController(cc[3],cc[4],cc[5]) != null){
-				w.removeTileEntity(message.x, message.y, message.z);
 				w.setBlock(message.x, message.y, message.z, Blocks.air);
-				Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText("Client destroyed it."+Main.indexOf(ClientProxy.AnimationControllers,(Object) c.controller)));
-				ClientProxy.AnimationControllers.remove(Main.indexOf(ClientProxy.AnimationControllers,(Object) c.controller));
-				ClientProxy.AnimationControllers.remove(ClientProxy.AnimationControllers.size()-1);
+				//Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText("Client destroyed it."+Main.indexOf(ClientProxy.AnimationControllers,(Object) c.controller)));
+								
+				ClientProxy.deleteAnimationController(c.controller.coords);
 				
-			}
 			return null;
 		}
 		

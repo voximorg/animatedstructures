@@ -10,6 +10,5 @@ public class CreateTileentities {
 		GameRegistry.registerTileEntity(TileentityAnimationEditorClient.class, "AnimationEditorClient");
 		GameRegistry.registerTileEntity(TileentityAnimationEditorServer.class, "AnimationEditorServer");
 		GameRegistry.registerTileEntity(TileentityAnimatedClient.class, "AnimatedClient");
-		GameRegistry.registerTileEntity(TestTileentity.class, "TEST");
 	}
 }

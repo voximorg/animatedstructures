@@ -15,7 +15,7 @@ import net.minecraft.util.ResourceLocation;
 
 public class TileentityAnimatedClient extends TileEntity{
 		
-	public ResourceLocation texture = new ResourceLocation("textures/blocks/diamond_block.png");
+	public ResourceLocation texture = new ResourceLocation("animatedstructures:textures/transparent.png");
 	
 	public static List<ResourceLocation> textures = new ArrayList<ResourceLocation>();
 		

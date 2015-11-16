@@ -6,6 +6,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.lwjgl.opengl.GL11;
@@ -22,6 +23,7 @@ import com.awesomeholden.Tileentities.TileentityAnimatedClient;
 import com.awesomeholden.Tileentities.TileentityAnimatedServer;
 import com.awesomeholden.Tileentities.TileentityAnimationEditorClient;
 import com.awesomeholden.Tileentities.TileentityAnimationEditorServer;
+import com.awesomeholden.packets.RemoveEditorClient;
 import com.awesomeholden.packets.SendTileentityAnimatedTextureUpdate;
 import com.awesomeholden.packets.SetCoordsOnClient;
 import com.awesomeholden.packets.UpdateControllerClientTextures;
@@ -31,7 +33,7 @@ import com.awesomeholden.proxies.ServerProxy;
 import cpw.mods.fml.common.network.NetworkRegistry.TargetPoint;
 
 public class AnimationControllerServer { //Pointers to objects inside of ServerProxy.AnimationControllers
-	
+		
 	public int TileentitiesToBeAdded = 4;
 	
 	public int dimension = 0;
@@ -46,16 +48,13 @@ public class AnimationControllerServer { //Pointers to objects inside of ServerP
 	
 	public AnimationControllerServer(){
 		coords = new int[]{0,0,0,0,0,0};
-		ServerProxy.controllerCoordsAssigmentCache.add(this);
 		
 		frameIntervals.add(10);
 		framesInfo.add(new HashMap<Integer,List<Integer>>());
 	}
 	
-	private int frameIndex = 0;
-	
-	private boolean lock = true;
-	
+	public int frameIndex = 0;
+		
 	public void onUpdate(){ //added to ServerLoop
 				
 		if(tick == frameIntervals.get(frameIndex)){
@@ -74,6 +73,18 @@ public class AnimationControllerServer { //Pointers to objects inside of ServerP
 						continue;
 					}
 				}
+				
+				List<Integer> ls = new ArrayList<Integer>();
+				List<TileentityAnimatedServer> ls2 = new ArrayList<TileentityAnimatedServer>();
+				for(int i=0;i<theControlled.size();i++){
+					int id = ServerProxy.getTileentityAnimatedId(theControlled.get(i));
+					
+					if(ls.indexOf(id)<0){
+						ls.add(id);
+						ls2.add(theControlled.get(i));
+					}
+				}
+				theControlled = ls2;
 			}
 																					
 			//System.out.println("CONTROLLERSERVER COORDS: "+Arrays.toString(coords)+" THECONTROLLED SIZE: "+theControlled.size());
@@ -106,8 +117,13 @@ public class AnimationControllerServer { //Pointers to objects inside of ServerP
 				}
 			}*/
 			
-			if(coords != null)
-				Main.network.sendToAllAround(new UpdateControllerClientTextures(coords,framesInfo.get(frameIndex)),new TargetPoint(dimension,(coords[0]+coords[3])/2,(coords[1]+coords[4])/2,(coords[2]+coords[5])/2,80));
+			if(coords != null){
+				int i = frameIndex+1;
+				if(i==frameIntervals.size())
+					i = 0;
+				
+				Main.network.sendToAllAround(new UpdateControllerClientTextures(coords,framesInfo.get(i)),genTargetPoint());
+			}
 				
 			/*theControlled.clear();
 			for(int i=0;i<MinecraftServer.getServer().worldServers[dimension].loadedTileEntityList.size();i++){
@@ -120,19 +136,6 @@ public class AnimationControllerServer { //Pointers to objects inside of ServerP
 					theControlled.add(c);
 			}*/
 			
-			
-			
-			List<Integer> ls = new ArrayList<Integer>();
-			List<TileentityAnimatedServer> ls2 = new ArrayList<TileentityAnimatedServer>();
-			for(int i=0;i<theControlled.size();i++){
-				int id = ServerProxy.getTileentityAnimatedId(theControlled.get(i));
-				
-				if(ls.indexOf(id)<0){
-					ls.add(id);
-					ls2.add(theControlled.get(i));
-				}
-			}
-			theControlled = ls2;
 		
 			if(frameIndex+1 == frameIntervals.size()){
 				frameIndex = 0;
@@ -147,7 +150,12 @@ public class AnimationControllerServer { //Pointers to objects inside of ServerP
 		tick++;
 	}
 	
+	public TargetPoint genTargetPoint(){
+		return new TargetPoint(dimension,(coords[0]+coords[3])/2,(coords[1]+coords[4])/2,(coords[2]+coords[5])/2,80);
+	}
+	
 	public void onCoordsSet(){
+		
 		/*if(coords != null)
 			Main.network.sendToAll(new SetCoordsOnClient());*/
 		
@@ -176,25 +184,39 @@ public class AnimationControllerServer { //Pointers to objects inside of ServerP
 				doo = true;
 			}
 		}
-		
-		for(int i=0;i<theControlled.size();i++){
-			//theControlled.set(i,theControlled.get(theControlled.size()-(i+1)));
-			System.out.println("CHECK THIS OUT: "+ServerProxy.getTileentityAnimatedId(theControlled.get(i)));
-		}
 	}
 	
 	public void removeTileentity(int x,int y,int z){
+		int index = -1;
 		List<TileentityAnimatedServer> n = new ArrayList<TileentityAnimatedServer>();
 		for(int i=0;i<theControlled.size();i++){
 			TileentityAnimatedServer c = theControlled.get(i);
 			
 			if(c.xCoord == x && c.yCoord == y && c.zCoord == z){
+				index = i;
 			}else{
 				n.add(c);
 			}
 		}
 		
+		if(index == -1)
+			return;
+		
 		theControlled = n;
+		
+		for(int i=0;i<framesInfo.size();i++){
+			for(Entry<Integer, List<Integer>> e : framesInfo.get(i).entrySet()){
+				for(int i2=0;i2<e.getValue().size();i2++){
+					if(e.getValue().get(i2) == index){
+						e.getValue().remove(i2);
+						i2--;
+					}else if(e.getValue().get(i2) > index){
+						e.getValue().set(i2, e.getValue().get(i2)-1);
+					}
+				}
+			}
+		}
+		
 	}
 
 }

@@ -1,5 +1,7 @@
 package com.awesomeholden;
 
+import com.awesomeholden.blocks.CreateBlocks;
+
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.creativetab.CreativeTabs;
@@ -7,20 +9,15 @@ import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 
 public class Tabs {
-	
-	private static class ClassTab extends CreativeTabs{
-	
-		public ClassTab() {
-			super("AnimatedStructures/Items");
-		}
 
+	public static CreativeTabs Tab = new CreativeTabs("Animated Structures") {
+		
 		@Override
-		@SideOnly(Side.CLIENT)
-		public Item getTabIconItem() {
-			return Items.bone;
+		public Item getTabIconItem(){
+			return Item.getItemFromBlock(CreateBlocks.Animated);
 		}
-	}
-
-	public static CreativeTabs Tab = new ClassTab();
+		
+	};
+		
 
 }

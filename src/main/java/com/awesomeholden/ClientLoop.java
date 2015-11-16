@@ -14,16 +14,13 @@ import org.lwjgl.opengl.GL11;
 
 import com.awesomeholden.TESRs.TESReditor;
 import com.awesomeholden.Tileentities.TileentityAnimatedClient;
+import com.awesomeholden.Tileentities.TileentityAnimatedServer;
 import com.awesomeholden.blocks.CreateBlocks;
 import com.awesomeholden.controllers.AnimationControllerClient;
 import com.awesomeholden.guis.AnimationEditorGui;
+import com.awesomeholden.guis.animationeditorguiwidges.TextBox;
+import com.awesomeholden.guis.animationeditorguiwidges.TextBoxInput;
 import com.awesomeholden.itemrenderers.ItemRendererAnimation;
-import com.awesomeholden.packets.DeleteAnimationControllers;
-import com.awesomeholden.packets.DropGlass;
-import com.awesomeholden.packets.RemoveEditorServer;
-import com.awesomeholden.packets.Send;
-import com.awesomeholden.packets.TestPacket;
-import com.awesomeholden.packets.WorldUnload;
 import com.awesomeholden.proxies.ClientProxy;
 import com.awesomeholden.proxies.CommonProxy;
 import com.awesomeholden.proxies.ServerProxy;
@@ -32,6 +29,8 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockStainedGlass;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.entity.EntityClientPlayerMP;
+import net.minecraft.client.gui.GuiIngameMenu;
+import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
@@ -44,6 +43,8 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.DrawBlockHighlightEvent;
+import net.minecraftforge.client.event.GuiScreenEvent;
+import net.minecraftforge.client.event.MouseEvent;
 import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.event.entity.living.LivingEvent.LivingUpdateEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent;
@@ -54,6 +55,7 @@ import cpw.mods.fml.common.eventhandler.EventPriority;
 import cpw.mods.fml.common.eventhandler.SubscribeEvent;
 import cpw.mods.fml.common.gameevent.InputEvent;
 import cpw.mods.fml.common.gameevent.TickEvent;
+import cpw.mods.fml.common.gameevent.TickEvent.Phase;
 import cpw.mods.fml.common.gameevent.TickEvent.PlayerTickEvent;
 
 public class ClientLoop {
@@ -73,8 +75,15 @@ public class ClientLoop {
 	public List<Method> ls = new ArrayList<Method>();
 	
 	public static AnimationControllerClient tryingToDestroy = null;
-		
+	
 	@SubscribeEvent
+	public void changeDimension(WorldEvent.Load e){
+		
+		ClientProxy.AnimationControllers.clear();
+		
+	}
+		
+	/*@SubscribeEvent
 	public void input(InputEvent.KeyInputEvent e) {
 		if(tryingToDestroy != null){
 			if(Keyboard.getEventKey() == 121){
@@ -85,7 +94,7 @@ public class ClientLoop {
 				tryingToDestroy = null;
 			}
 		}
-		if(Minecraft.getMinecraft().gameSettings.keyBindDrop.isPressed()){
+		/*if(Minecraft.getMinecraft().gameSettings.keyBindDrop.isPressed()){
 			EntityClientPlayerMP p = Minecraft.getMinecraft().thePlayer;
 			
 			ItemStack stack = p.getCurrentEquippedItem();
@@ -105,17 +114,8 @@ public class ClientLoop {
 			}else{
 				p.dropOneItem(GuiScreen.isCtrlKeyDown());
 			}
-		}
-	}
-	
-	
-	@SubscribeEvent
-	public void onUnload(WorldEvent.Unload e){
-		ClientProxy.AnimationControllers.clear();
-		//Main.network.sendToServer(new DeleteAnimationControllers());
-		//ServerProxy.AnimationControllers.clear();
-		//Main.network.sendToAll(new WorldUnload());
-	}
+		}*/
+	//}
 	
 	@SubscribeEvent
 	public void onPlayerTick(PlayerTickEvent event) {
@@ -128,9 +128,37 @@ public class ClientLoop {
 		}*/
 	}
 	
+	/*@SubscribeEvent
+	public void onGuiIngameMenuQuit(GuiScreenEvent.ActionPerformedEvent event) {
+		if (event.gui instanceof GuiIngameMenu && event.button.id == 1) {
+			
+			System.out.println("QUIT FROM SLSKFJ");
+					
+			ServerProxy.AnimationControllers.clear();
+			ClientProxy.AnimationControllers.clear();
+			
+		}
+			
+		/*ServerProxy.AnimationControllers.clear();
+		ClientProxy.AnimationControllers.clear();*/
+		
+		//TileentityAnimatedServer.textures.clear();
+	//}
+	
 	public World world;
+	
 	@SubscribeEvent
 	public void onRenderTick(TickEvent.RenderTickEvent event) {
+				
+		if(Minecraft.getMinecraft().getIntegratedServer() == null && ServerProxy.AnimationControllers.size() > 0){
+						
+			ServerProxy.AnimationControllers.clear();
+			ClientProxy.AnimationControllers.clear();
+			
+			TileentityAnimatedClient.textures.clear();
+			TileentityAnimatedServer.textures.clear();
+		}
+					
 		//System.out.println(Main.currentTileEntityForGui);
 		if(ClientProxy.gui != null){
 			ClientProxy.gui.render();
@@ -154,7 +182,7 @@ public class ClientLoop {
 	
 	public static float y = 0;
 	
-	public static float yInc = 0.005f;
+	public static float yInc = 0.0025f;
 	
 	private List<ResourceLocation> textures = TileentityAnimatedClient.textures;
 	
@@ -162,9 +190,57 @@ public class ClientLoop {
 	private int prevTex = 0;
 	
 	int previousEvent;
+	
+	public static GuiScreen previousScreen;
 	@SubscribeEvent
 	public void onClientTick(TickEvent.ClientTickEvent event) {
+				
+		if(event.phase == Phase.START && ClientProxy.gui != null){
+			
+			TextBox.tick++;
+			TextBoxInput.deleteTick++;
+			
+			while(Keyboard.next()){
+				if(Keyboard.isKeyDown(Keyboard.KEY_RIGHT)){
+		        	ClientProxy.rightPressed = true;
+		        }else{
+		        	ClientProxy.rightPressed = false;
+		        }if(Keyboard.isKeyDown(Keyboard.KEY_LEFT)){
+		        	ClientProxy.leftPressed = true;
+		        }else{
+		        	ClientProxy.leftPressed = false;
+		        }
+				
+				eventChar = (byte) Keyboard.getEventCharacter();
+				
+				if(eventChar != prevEventChar)
+					newEventChar = true;
+				
+				if(newEventChar){
+					if(eventChar == 27){
+						ClientProxy.gui = null;
+						newEventChar = false;
+					}
+				}
+				
+				prevEventChar = eventChar;
+			}
 		
+			while(Mouse.next()){
+				
+				if(Mouse.getEventButton() == AnimationEditorGui.button && (!Mouse.getEventButtonState()))
+						leftUp = true;
+				
+				AnimationEditorGui.eventButton = Mouse.getEventButton();
+				if(Mouse.getEventButton() > -1){
+					AnimationEditorGui.newEventButton = true;
+				}
+				
+				
+			}
+		}
+
+						
 		if(tick >= 10 && textures.size() != 0){
 			
 			TESReditor.texTrainIndex++;
@@ -179,7 +255,7 @@ public class ClientLoop {
 				if(tex >= textures.size())
 					tex = 0;
 				ResourceLocation r = textures.get(tex);
-				if(r.getResourcePath().substring(0, 15).equals("textures/blocks")){
+				if(r.getResourcePath().length()>15 && r.getResourcePath().substring(0, 15).equals("textures/blocks") && !(r.getResourceDomain()+":"+r.getResourcePath()).equals("animatedstructures:textures/transparent.png")){
 					aBlockTex = textures.get(tex);
 					prevTex = tex;
 					break;
@@ -230,11 +306,6 @@ public class ClientLoop {
 		//System.out.println("ANIMATION CONTROLLERS CLIENT: "+ClientProxy.AnimationControllers.size());
 		
 		//System.out.println(Keyboard.KEY_ESCAPE);
-		if(previousEvent != Keyboard.getEventKey() && Keyboard.getEventKey() == 1){
-			ClientProxy.gui = null;
-        	//Minecraft.getMinecraft().mouseHelper.grabMouseCursor();
-		}
-		previousEvent = Keyboard.getEventKey();
 		
 		/*if(Minecraft.getMinecraft().thePlayer == null) return;
 		
@@ -284,10 +355,6 @@ public class ClientLoop {
 		/*if(ClientProxy.currentTileEntityForGui != null){
 			Mouse.setGrabbed(false);
 		}*/
-		
-		for(int ph=0;ph<ClientProxy.textBoxs.size();ph++){
-			ClientProxy.textBoxs.get(ph).tick+=1;
-		}
 	}
 	
 	/*private boolean wasDead = false;
@@ -326,5 +393,20 @@ public class ClientLoop {
 			System.out.println("finished");
 		}
 	}*/
+	
+	@SubscribeEvent
+	public void preMouseEvent(MouseEvent e){
+		if(ClientProxy.gui != null)
+			e.setCanceled(true);
+	}
+	
+	public static byte prevEventChar;
+	
+	public static byte eventChar;
+	
+	public static boolean newEventChar = false;
+	
+		
+	public static boolean leftUp;
 	
 }

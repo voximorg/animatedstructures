@@ -19,21 +19,10 @@ public class TileentityAnimationEditorClient extends TileEntity{
 	
 	public TileentityAnimationEditorClient(AnimationControllerClient c){
 		controller = c;
-		int[] p = c.coords;
 		//System.out.println("TileentityAnimationEditor constructor coords: "+p[0]+','+p[1]+','+p[2]+','+p[3]+','+p[4]+','+p[5]);
-		markDirty();
 		
 		//c.theControlled.addAll(ClientProxy.controllerAssignmentCache);
-	}
-	
-	@Override
-	public void writeToNBT(NBTTagCompound nbt){
-		super.writeToNBT(nbt);
-	}
-	
-	@Override
-	public void readFromNBT(NBTTagCompound nbt){
-		super.readFromNBT(nbt);
+		
 	}
 	
 	@Override

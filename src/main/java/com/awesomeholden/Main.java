@@ -24,18 +24,14 @@ import com.awesomeholden.controllers.AnimationControllerServer;
 import com.awesomeholden.items.MItems;
 import com.awesomeholden.packets.AddTextureToClients;
 import com.awesomeholden.packets.CallTileentityAnimatedRealConstructor;
-import com.awesomeholden.packets.DeleteAnimationControllers;
-import com.awesomeholden.packets.DropGlass;
 import com.awesomeholden.packets.FindAnimationControllerServer;
-import com.awesomeholden.packets.GetTextures;
 import com.awesomeholden.packets.GivePlayerTextures;
 import com.awesomeholden.packets.HandleCallTileentityAnimatedConstructor;
 import com.awesomeholden.packets.HandleOnTileentityAnimatedDeleted;
 import com.awesomeholden.packets.HandleTileentityAnimatedTextureUpdate;
-import com.awesomeholden.packets.Handler;
+import com.awesomeholden.packets.RefreshAnimation;
+import com.awesomeholden.packets.RemoveControllerClient;
 import com.awesomeholden.packets.RemoveEditorClient;
-import com.awesomeholden.packets.RemoveEditorServer;
-import com.awesomeholden.packets.Send;
 import com.awesomeholden.packets.SendCallTileentityAnimatedConstructor;
 import com.awesomeholden.packets.CreateAnimationControllerServer;
 import com.awesomeholden.packets.SendOnTileentityAnimatedDeleted;
@@ -44,11 +40,10 @@ import com.awesomeholden.packets.SetAnimationControllerClientCoords;
 import com.awesomeholden.packets.SetCoordsOnClient;
 import com.awesomeholden.packets.ShouldDestroyController;
 import com.awesomeholden.packets.ShouldRemoveEditor;
-import com.awesomeholden.packets.TestPacket;
-import com.awesomeholden.packets.TestPacket.Hanlder;
 import com.awesomeholden.packets.UpdateControllerClientTextures;
-import com.awesomeholden.packets.WorldUnload;
 import com.awesomeholden.packets.gui.AddFrameInterval;
+import com.awesomeholden.packets.gui.DeleteFrame;
+import com.awesomeholden.packets.gui.Erase;
 import com.awesomeholden.packets.gui.GetFrameIntervals;
 import com.awesomeholden.packets.gui.GetFrameIntervalsResponse;
 import com.awesomeholden.packets.gui.GetFrameByLayerAndFrame;
@@ -473,11 +468,11 @@ public class Main
 			workingDir+=(File.separator+stuff[i]);
 		
 		//workingDir = workingDir.substring(0, workingDir.length()-1);
-				
-		System.out.println("WORKING DIR: "+workingDir);
 		
 		if(!new File(workingDir).exists())
 			workingDir = workingDir.split(":")[1];
+		
+		System.out.println("WORKING DIR: "+workingDir);
 		
 		/*URL url = null;
 		try {
@@ -492,6 +487,7 @@ public class Main
 		}catch(FileNotFoundException e2){}*/
 				
 			network = NetworkRegistry.INSTANCE.newSimpleChannel(MODID);
+			
 		proxy.preInit(e);
 
 		// network.registerMessage(Handler.class, Send.class, 0, Side.CLIENT);
@@ -508,10 +504,11 @@ public class Main
 		network.registerMessage(AddTextureToClients.Handler.class,AddTextureToClients.class, 11, Side.CLIENT);
 		network.registerMessage(GetFrameByLayerAndFrame.Handler.class,GetFrameByLayerAndFrame.class, 12, Side.SERVER);
 		network.registerMessage(GetFrameByLayerAndFrame.Response.Handler.class,GetFrameByLayerAndFrame.Response.class, 13, Side.CLIENT);
+		network.registerMessage(RemoveControllerClient.Handler.class,RemoveControllerClient.class,14,Side.CLIENT);
 		//network.registerMessage(SaveControllerToItem.Handler.class,SaveControllerToItem.class, 14, Side.SERVER);
 		network.registerMessage(CallTileentityAnimatedRealConstructor.Handler.class,CallTileentityAnimatedRealConstructor.class, 15, Side.CLIENT);
 		network.registerMessage(SetCoordsOnClient.Handler.class,SetCoordsOnClient.class, 16, Side.CLIENT);
-		network.registerMessage(WorldUnload.Handler.class, WorldUnload.class,17, Side.CLIENT);
+		//network.registerMessage(WorldUnload.Handler.class, WorldUnload.class,17, Side.CLIENT);
 		network.registerMessage(GivePlayerTextures.Handler.class,GivePlayerTextures.class, 18, Side.CLIENT);
 		// network.registerMessage(DeleteAnimationControllers.Handler.class,
 		// DeleteAnimationControllers.class, 19, Side.SERVER);
@@ -519,10 +516,13 @@ public class Main
 		network.registerMessage(FindAnimationControllerServer.Handler.class,FindAnimationControllerServer.class, 21, Side.SERVER);
 		network.registerMessage(UpdateControllerClientTextures.Handler.class,UpdateControllerClientTextures.class, 22, Side.CLIENT);
 		network.registerMessage(ShouldRemoveEditor.Handler.class,ShouldRemoveEditor.class, 23, Side.SERVER);
-		//network.registerMessage(RemoveEditorClient.Handler.class,RemoveEditorClient.class, 24, Side.CLIENT);
-		network.registerMessage(DropGlass.Handler.class, DropGlass.class, 25,Side.SERVER);
+		network.registerMessage(RemoveEditorClient.Handler.class,RemoveEditorClient.class, 24, Side.CLIENT);
+		//network.registerMessage(DropGlass.Handler.class, DropGlass.class, 25,Side.SERVER);
 		network.registerMessage(ShouldDestroyController.Handler.class, ShouldDestroyController.class, 26, Side.CLIENT);
-		network.registerMessage(RemoveEditorServer.Handler.class, RemoveEditorServer.class, 27, Side.SERVER);
+		//network.registerMessage(RemoveEditorServer.Handler.class, RemoveEditorServer.class, 27, Side.SERVER);
+		network.registerMessage(Erase.Handler.class, Erase.class, 28, Side.SERVER);
+		network.registerMessage(RefreshAnimation.Handler.class, RefreshAnimation.class, 29, Side.SERVER);
+		network.registerMessage(DeleteFrame.Handler.class, DeleteFrame.class, 30, Side.SERVER);
 		
 		
 		
@@ -530,18 +530,19 @@ public class Main
 		
 
 		GameRegistry.addShapelessRecipe(new ItemStack(MItems.rawLed),
-				new Object[] { new ItemStack(MItems.redShard,2), new ItemStack(MItems.greenShard,2),
-						new ItemStack(MItems.blueShard,2),Items.gold_nugget });
-		
-		GameRegistry.addRecipe(new ItemStack(CreateBlocks.animatedInsides),new Object[]{"SRS","III","SRS",'S',new ItemStack(Blocks.stone),'R',new ItemStack(Items.redstone),'I',new ItemStack(Items.iron_ingot)});
-		GameRegistry.addRecipe(new ItemStack(CreateBlocks.Animated),new Object[]{"BBB","BFB","BBB",'B',new ItemStack(CreateBlocks.ledBlock),'F',new ItemStack(CreateBlocks.animatedInsides)});
+				new Object[] { new ItemStack(MItems.redShard), new ItemStack(MItems.greenShard),
+						new ItemStack(MItems.blueShard) });
+				
+		GameRegistry.addRecipe(new ItemStack(CreateBlocks.animatedInsides),new Object[]{"SRS","IGI","SRS",'S',new ItemStack(Blocks.stone),'R',new ItemStack(Items.redstone),'G',new ItemStack(Blocks.gold_block),'I',new ItemStack(Items.iron_ingot)});
 		GameRegistry.addRecipe(new ItemStack(CreateBlocks.ledBlock),new Object[]{"###","# #","###",'#',new ItemStack(MItems.led)});
+		GameRegistry.addRecipe(new ItemStack(CreateBlocks.Animated),new Object[]{"BBB","BFB","BBB",'B',new ItemStack(CreateBlocks.ledBlock),'F',new ItemStack(CreateBlocks.animatedInsides)});
 		GameRegistry.addRecipe(new ItemStack(CreateBlocks.enderBrain),new Object[]{"###","#E#","###",'#',new ItemStack(MItems.enderBrain),'E',new ItemStack(Items.ender_eye)});
 		GameRegistry.addRecipe(new ItemStack(CreateBlocks.bone),new Object[]{"###","###","###",'#',new ItemStack(Items.bone)});
-		GameRegistry.addRecipe(new ItemStack(CreateBlocks.controllerInsides),new Object[]{"SDS","DGD","SDS",'S',new ItemStack(Blocks.stone),'D',new ItemStack(Items.diamond),'G',new ItemStack(Items.ghast_tear)});
+		GameRegistry.addRecipe(new ItemStack(CreateBlocks.controllerInsides),new Object[]{"DDD","DGD","DDD",'D',new ItemStack(Items.diamond),'G',new ItemStack(Items.ghast_tear)});
 		GameRegistry.addRecipe(new ItemStack(CreateBlocks.AnimationEditor),new Object[]{"OEO","WCW","OBO",'O',new ItemStack(Blocks.obsidian),'E',new ItemStack(CreateBlocks.enderBrain),'W',new ItemStack(Blocks.wool),'C',new ItemStack(CreateBlocks.controllerInsides),'B',new ItemStack(CreateBlocks.bone)});
+		GameRegistry.addRecipe(new ItemStack(MItems.magicWand),new Object[]{"A  "," S ","  S",'A',new ItemStack(CreateBlocks.Animated),'S',new ItemStack(Blocks.obsidian)});
 		
-		GameRegistry.addSmelting(MItems.rawLed, new ItemStack(MItems.led), 2000);
+		GameRegistry.addSmelting(MItems.rawLed, new ItemStack(MItems.led), 1.0F);
 
 		/*
 		 * field_150769_h =
