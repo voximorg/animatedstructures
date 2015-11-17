@@ -194,6 +194,8 @@ public class ClientLoop {
 	public static GuiScreen previousScreen;
 	@SubscribeEvent
 	public void onClientTick(TickEvent.ClientTickEvent event) {
+		
+		//System.out.println("CLIENT SIZE: "+ClientProxy.AnimationControllers.size());
 				
 		if(event.phase == Phase.START && ClientProxy.gui != null){
 			

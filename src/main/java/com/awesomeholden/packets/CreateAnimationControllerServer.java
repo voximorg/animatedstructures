@@ -12,6 +12,7 @@ import net.minecraft.world.WorldServer;
 
 import com.awesomeholden.Main;
 import com.awesomeholden.Tileentities.TileentityAnimationEditorServer;
+import com.awesomeholden.controllers.AnimationControllerClient;
 import com.awesomeholden.controllers.AnimationControllerServer;
 import com.awesomeholden.proxies.ClientProxy;
 import com.awesomeholden.proxies.ServerProxy;
@@ -55,6 +56,16 @@ public class CreateAnimationControllerServer implements IMessage{
 	}
 	
 	public static class Handler implements IMessageHandler<CreateAnimationControllerServer, IMessage> {
+		
+		public static void deleteController(int[] coords){
+			for(int i=ServerProxy.AnimationControllers.size()-1;i>-1;i--){
+				if(Main.compareArrays(coords, ServerProxy.AnimationControllers.get(i).coords)){
+					ServerProxy.AnimationControllers.remove(i);
+					break;
+				}
+			}
+			
+		}
 	    
 	    @Override
 	    public IMessage onMessage(CreateAnimationControllerServer message, MessageContext ctx) {
@@ -79,7 +90,7 @@ public class CreateAnimationControllerServer implements IMessage{
 	    		if((!(Math.abs(cc[0]-cc[3])<20 && Math.abs(cc[1]-cc[4])<20 && Math.abs(cc[2]-cc[5])<20)) || (cc[0]==0 && cc[1]==0 && cc[2]==0 && cc[3]==0 && cc[4]==0 && cc[5]==0)){
 	    			System.out.println("TO BIG OR 000000");
 	    			
-	    			ServerProxy.deleteAnimationController(cc);
+	    			deleteController(cc);
 					
 					w.setBlock(e2.xCoord, e2.yCoord, e2.zCoord, Blocks.air);
 					
@@ -100,7 +111,7 @@ public class CreateAnimationControllerServer implements IMessage{
 	    				
 	    				System.out.println("OTHEr DELETE");
 	        						        					
-	        					ServerProxy.deleteAnimationController(cc);
+	        					deleteController(cc);
 	        					
 	        					w.setBlock(e2.xCoord, e2.yCoord, e2.zCoord, Blocks.air);
 	        					

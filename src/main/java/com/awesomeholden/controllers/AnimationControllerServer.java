@@ -122,6 +122,8 @@ public class AnimationControllerServer { //Pointers to objects inside of ServerP
 				if(i==frameIntervals.size())
 					i = 0;
 				
+				//System.out.println("SERVER SIZE: "+ServerProxy.AnimationControllers.size());
+				
 				Main.network.sendToAllAround(new UpdateControllerClientTextures(coords,framesInfo.get(i)),genTargetPoint());
 			}
 				

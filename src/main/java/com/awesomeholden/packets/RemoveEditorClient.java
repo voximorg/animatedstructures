@@ -9,6 +9,7 @@ import net.minecraft.world.World;
 
 import com.awesomeholden.Main;
 import com.awesomeholden.Tileentities.TileentityAnimationEditorClient;
+import com.awesomeholden.controllers.AnimationControllerClient;
 import com.awesomeholden.proxies.ClientProxy;
 
 import io.netty.buffer.ByteBuf;
@@ -44,6 +45,16 @@ public class RemoveEditorClient implements IMessage{
 	}
 	
 	public static class Handler implements IMessageHandler<RemoveEditorClient,IMessage>{
+		
+		public static void deleteController(int[] coords){
+			for(int i=ClientProxy.AnimationControllers.size()-1;i>-1;i--){
+				if(Main.compareArrays(coords, ClientProxy.AnimationControllers.get(i).coords)){
+					ClientProxy.AnimationControllers.remove(i);
+					break;
+				}
+			}
+			
+		}
 
 		@SideOnly(Side.CLIENT)
 		@Override
@@ -56,7 +67,7 @@ public class RemoveEditorClient implements IMessage{
 				w.setBlock(message.x, message.y, message.z, Blocks.air);
 				//Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText("Client destroyed it."+Main.indexOf(ClientProxy.AnimationControllers,(Object) c.controller)));
 								
-				ClientProxy.deleteAnimationController(c.controller.coords);
+				deleteController(cc);
 				
 			return null;
 		}
